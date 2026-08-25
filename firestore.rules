@@ -1,0 +1,31 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // أكواد التفعيل: أي حد يكدر يقرأ للتحقق من الكود
+    // الكتابة (توليد كود جديد) تصير بس من admin.html بكلمة مرورك الخاصة
+    // ملاحظة أمان: هذي القاعدة MVP بدون Firebase Auth، يعني أي شخص يعرف
+    // تفاصيل مشروعك (config عام أصلاً) يكدر يكتب مباشرة لو يريد.
+    // للحماية الكاملة لاحقاً، انقل التوليد والتحقق لـ Cloud Function.
+    match /activationCodes/{code} {
+      allow read: if true;
+      allow write: if true; // TODO: قيدها لاحقاً عبر Cloud Function + Firebase Auth
+    }
+
+    match /agents/{phone} {
+      allow read: if true;
+      allow create: if true;
+      allow update: if true; // TODO: قيدها لاحقاً بحيث الوكيل يعدل بياناته هو بس
+    }
+
+    match /otpRequests/{phone} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    // بيانات المنافذ (تُبنى بالمرحلة الجاية)
+    match /branches/{agentPhone}/{document=**} {
+      allow read, write: if true;
+    }
+  }
+}

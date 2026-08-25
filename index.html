@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover" />
+<meta name="theme-color" content="#12151b" />
+<title>منافذ الرواتب</title>
+<link rel="manifest" href="manifest.json" />
+<link rel="apple-touch-icon" href="icons/icon-192.png" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+
+<div class="brand">
+  <div class="brand-mark">ر</div>
+  <div>
+    <div class="brand-name">منافذ الرواتب</div>
+    <div class="brand-sub">محاسبة يومية لمنفذك</div>
+  </div>
+</div>
+
+<!-- شاشة التفعيل -->
+<section id="screen-activation" class="screen">
+  <div class="card">
+    <div class="title">فعّل التطبيق</div>
+    <div class="subtitle">هذا التطبيق يحتاج كود تفعيل صادر من مالك النظام قبل لا تكدر تستخدمه.</div>
+    <label>كود التفعيل</label>
+    <input type="text" id="activation-code" placeholder="مثال: AB12CD" autocomplete="off" />
+    <div class="error-text" id="activation-error"></div>
+    <div style="height:6px"></div>
+    <button class="btn btn-primary" id="btn-check-activation">تحقق من الكود</button>
+  </div>
+
+  <div class="hint-box">
+    ما عندك كود تفعيل؟ تواصل لطلب اشتراك على الرقم:
+    <br />
+    <span class="hint-phone" id="support-phone-display"></span>
+  </div>
+
+  <div class="card">
+    <div class="subtitle" style="margin-bottom:12px">خطط الاشتراك المتوفرة</div>
+    <div class="plans">
+      <div class="plan"><span class="plan-name">اشتراك شهر واحد</span><span class="plan-price">10,000 د.ع</span></div>
+      <div class="plan"><span class="plan-name">اشتراك 3 أشهر</span><span class="plan-price">25,000 د.ع</span></div>
+      <div class="plan"><span class="plan-name">اشتراك سنة كاملة</span><span class="plan-price">90,000 د.ع</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- شاشة إنشاء الحساب (أول استخدام بعد التفعيل) -->
+<section id="screen-signup" class="screen">
+  <div class="card">
+    <div class="title">أنشئ حسابك</div>
+    <div class="subtitle">هذا الجهاز مفعّل. حط رقم هاتفك ورمز سري من 5 أرقام تستخدمه بكل مرة تفتح التطبيق.</div>
+
+    <label>رقم الهاتف</label>
+    <input type="tel" id="signup-phone" placeholder="07xxxxxxxxx" inputmode="numeric" />
+
+    <label>الرمز السري (5 أرقام)</label>
+    <input type="password" id="signup-pin" placeholder="•••••" inputmode="numeric" maxlength="5" />
+
+    <label>تأكيد الرمز السري</label>
+    <input type="password" id="signup-pin2" placeholder="•••••" inputmode="numeric" maxlength="5" />
+
+    <div class="error-text" id="signup-error"></div>
+    <div style="height:6px"></div>
+    <button class="btn btn-primary" id="btn-signup">إنشاء الحساب</button>
+  </div>
+</section>
+
+<!-- شاشة تسجيل الدخول -->
+<section id="screen-login" class="screen">
+  <div class="card">
+    <div class="title">تسجيل الدخول</div>
+    <div class="subtitle">حط رقم هاتفك ورمزك السري.</div>
+
+    <label>رقم الهاتف</label>
+    <input type="tel" id="login-phone" placeholder="07xxxxxxxxx" inputmode="numeric" />
+
+    <label>الرمز السري</label>
+    <input type="password" id="login-pin" placeholder="•••••" inputmode="numeric" maxlength="5" />
+
+    <div class="error-text" id="login-error"></div>
+    <div style="height:6px"></div>
+    <button class="btn btn-primary" id="btn-login">دخول</button>
+    <button class="link-btn" id="link-forgot-pin">نسيت الرمز السري؟</button>
+  </div>
+</section>
+
+<!-- نسيت الرمز - خطوة 1: طلب OTP -->
+<section id="screen-forgot-1" class="screen">
+  <div class="top-actions">
+    <button class="back-btn" id="link-to-login">‹ رجوع لتسجيل الدخول</button>
+  </div>
+  <div class="card">
+    <div class="title">استرجاع الرمز السري</div>
+    <div class="subtitle">راح نرسلك رمز تحقق عبر واتساب على رقمك.</div>
+    <label>رقم الهاتف</label>
+    <input type="tel" id="forgot-phone" placeholder="07xxxxxxxxx" inputmode="numeric" />
+    <div class="error-text" id="forgot1-error"></div>
+    <div style="height:6px"></div>
+    <button class="btn btn-primary" id="btn-send-otp">إرسال الرمز عبر واتساب</button>
+  </div>
+</section>
+
+<!-- نسيت الرمز - خطوة 2: تأكيد OTP + رمز جديد -->
+<section id="screen-forgot-2" class="screen">
+  <div class="top-actions">
+    <button class="back-btn" id="link-back-forgot1">‹ رجوع</button>
+  </div>
+  <div class="card">
+    <div class="title">أدخل رمز التحقق</div>
+    <div class="subtitle" id="otp-dev-hint">وصلك رمز مكون من 6 أرقام عبر واتساب.</div>
+
+    <label>رمز التحقق</label>
+    <input type="text" id="otp-code" placeholder="123456" inputmode="numeric" maxlength="6" />
+
+    <label>الرمز السري الجديد (5 أرقام)</label>
+    <input type="password" id="new-pin" placeholder="•••••" inputmode="numeric" maxlength="5" />
+
+    <label>تأكيد الرمز الجديد</label>
+    <input type="password" id="new-pin2" placeholder="•••••" inputmode="numeric" maxlength="5" />
+
+    <div class="error-text" id="forgot2-error"></div>
+    <div style="height:6px"></div>
+    <button class="btn btn-primary" id="btn-reset-pin">تأكيد وتحديث الرمز</button>
+  </div>
+</section>
+
+<!-- لوحة مبدئية بعد الدخول -->
+<section id="screen-dashboard" class="screen">
+  <div class="card">
+    <div class="title">تم تسجيل الدخول بنجاح</div>
+    <div class="subtitle">اشتراكك الحالي: <span id="dashboard-plan">—</span></div>
+    <div class="hint-box">هذي شاشة مبدئية. الشاشة الرئيسية الفعلية (الأرباح، الأرصدة، التسويات) تُبنى بالمرحلة الجاية.</div>
+    <div style="height:6px"></div>
+    <button class="btn btn-ghost" id="btn-logout">تسجيل خروج</button>
+  </div>
+</section>
+
+<div class="center-note">منافذ الرواتب — نسخة تجريبية أولى</div>
+
+<script type="module" src="js/auth.js"></script>
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('service-worker.js').catch(() => {});
+    });
+  }
+</script>
+</body>
+</html>
