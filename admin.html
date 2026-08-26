@@ -47,7 +47,6 @@
 <script type="module">
   import { createActivationCode } from './js/db.js';
 
-  // غيّر هذي الكلمة لكلمة مرور خاصة فيك قبل ما تنشر الصفحة
   const ADMIN_PASSWORD = "غيّرني123";
 
   document.getElementById('btn-admin-login').addEventListener('click', () => {
@@ -80,7 +79,7 @@
       box.style.display = 'block';
       box.innerHTML = 'الكود الجديد: <span class="hint-phone">' + code + '</span>';
     } catch (e) {
-      alert('صار خطأ، تأكد من إعدادات Firebase');
+      alert('رسالة الخطأ الحقيقية: ' + (e && e.message ? e.message : JSON.stringify(e)));
     } finally {
       btn.disabled = false; btn.textContent = 'توليد كود جديد';
     }
