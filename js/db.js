@@ -1,12 +1,17 @@
 import { firebaseConfig } from './firebase-config.js';
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {
-  getFirestore, doc, getDoc, setDoc, updateDoc, collection,
+  initializeFirestore, doc, getDoc, setDoc, updateDoc, collection,
   query, where, getDocs, serverTimestamp
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const app = initializeApp(firebaseConfig);
-export const db = getFirestore(app);
+// experimentalAutoDetectLongPolling: يتأقلم مع شبكات الموبايل اللي توقف الاتصال المستمر
+// (سبب شائع لتعليق العمليات بصمت بدون خطأ واضح)
+export const db = initializeFirestore(app, {
+  experimentalAutoDetectLongPolling: true,
+  useFetchStreams: false
+});
 
 // لف أي عملية Firestore بمهلة 12 ثانية، حتى ما تعلق الشاشة بصمت
 function withTimeout(promise, label) {
