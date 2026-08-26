@@ -1,101 +1,144 @@
 import { firebaseConfig } from './firebase-config.js';
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import {
-  initializeFirestore, doc, getDoc, setDoc, updateDoc, collection,
-  query, where, getDocs, serverTimestamp
-} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-const app = initializeApp(firebaseConfig);
-// experimentalAutoDetectLongPolling: يتأقلم مع شبكات الموبايل اللي توقف الاتصال المستمر
-// (سبب شائع لتعليق العمليات بصمت بدون خطأ واضح)
-export const db = initializeFirestore(app, {
-  experimentalAutoDetectLongPolling: true,
-  useFetchStreams: false
-});
+const PROJECT_ID = firebaseConfig.projectId;
+const BASE_URL = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents`;
 
-// لف أي عملية Firestore بمهلة 12 ثانية، حتى ما تعلق الشاشة بصمت
-function withTimeout(promise, label) {
-  return Promise.race([
-    promise,
-    new Promise((_, reject) =>
-      setTimeout(() => reject(new Error('انتهت مهلة الاتصال (' + label + '). تأكد من الانترنت، أو جرب تسكر iCloud Private Relay إذا مفعّل، وحاول مرة ثانية.')), 12000)
-    )
-  ]);
+function fetchWithTimeout(url, options, label) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 15000);
+  return fetch(url, { ...options, signal: controller.signal })
+    .finally(() => clearTimeout(timer))
+    .catch((err) => {
+      if (err.name === 'AbortError') {
+        throw new Error('انتهت مهلة الاتصال (' + label + '). تأكد من الانترنت وحاول مرة ثانية.');
+      }
+      throw new Error('فشل الاتصال (' + label + '): ' + err.message);
+    });
 }
 
-// ---------- تشفير الرمز السري (بسيط، من طرف المتصفح) ----------
+function toValue(v) {
+  if (v === null || v === undefined) return { nullValue: null };
+  if (v === 'SERVER_TIMESTAMP') return { timestampValue: new Date().toISOString() };
+  if (typeof v === 'string') return { stringValue: v };
+  if (typeof v === 'boolean') return { booleanValue: v };
+  if (typeof v === 'number') return { integerValue: String(Math.trunc(v)) };
+  return { stringValue: String(v) };
+}
+
+function toFields(obj) {
+  const fields = {};
+  for (const [k, v] of Object.entries(obj)) fields[k] = toValue(v);
+  return fields;
+}
+
+function fromFields(fields) {
+  const obj = {};
+  for (const [k, v] of Object.entries(fields || {})) {
+    if ('stringValue' in v) obj[k] = v.stringValue;
+    else if ('booleanValue' in v) obj[k] = v.booleanValue;
+    else if ('integerValue' in v) obj[k] = Number(v.integerValue);
+    else if ('doubleValue' in v) obj[k] = v.doubleValue;
+    else if ('timestampValue' in v) obj[k] = v.timestampValue;
+    else obj[k] = null;
+  }
+  return obj;
+}
+
+async function restGet(path, label) {
+  const res = await fetchWithTimeout(`${BASE_URL}/${path}`, { method: 'GET' }, label);
+  if (res.status === 404) return null;
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error('خطأ من الخادم (' + res.status + '): ' + text.slice(0, 150));
+  }
+  const json = await res.json();
+  return json.fields ? fromFields(json.fields) : {};
+}
+
+async function restWrite(path, data, label, mergeFields) {
+  let url = `${BASE_URL}/${path}`;
+  if (mergeFields && mergeFields.length) {
+    url += '?' + mergeFields.map((f) => 'updateMask.fieldPaths=' + encodeURIComponent(f)).join('&');
+  }
+  const res = await fetchWithTimeout(url, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ fields: toFields(data) })
+  }, label);
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error('خطأ من الخادم (' + res.status + '): ' + text.slice(0, 150));
+  }
+  return res.json();
+}
+
 export async function hashPin(pin) {
   const enc = new TextEncoder().encode(pin);
   const buf = await crypto.subtle.digest('SHA-256', enc);
-  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+  return Array.from(new Uint8Array(buf)).map((b) => b.toString(16).padStart(2, '0')).join('');
 }
 
-// ---------- أكواد التفعيل ----------
 export async function getActivationCode(code) {
-  const ref = doc(db, 'activationCodes', code.trim().toUpperCase());
-  const snap = await withTimeout(getDoc(ref), 'التحقق من كود التفعيل');
-  return snap.exists() ? { id: snap.id, ...snap.data() } : null;
+  const id = code.trim().toUpperCase();
+  const data = await restGet(`activationCodes/${id}`, 'التحقق من كود التفعيل');
+  return data ? { id, ...data } : null;
 }
 
 export async function bindActivationCode(code, phone) {
-  const ref = doc(db, 'activationCodes', code.trim().toUpperCase());
-  await withTimeout(updateDoc(ref, {
+  const id = code.trim().toUpperCase();
+  await restWrite(`activationCodes/${id}`, {
     status: 'used',
     boundAgentPhone: phone,
-    usedAt: serverTimestamp()
-  }), 'ربط كود التفعيل');
+    usedAt: 'SERVER_TIMESTAMP'
+  }, 'ربط كود التفعيل', ['status', 'boundAgentPhone', 'usedAt']);
 }
 
 export async function createActivationCode(code, plan) {
-  const ref = doc(db, 'activationCodes', code.trim().toUpperCase());
-  await withTimeout(setDoc(ref, {
-    code: code.trim().toUpperCase(),
+  const id = code.trim().toUpperCase();
+  await restWrite(`activationCodes/${id}`, {
+    code: id,
     plan,
     status: 'unused',
     boundAgentPhone: null,
-    createdAt: serverTimestamp(),
+    createdAt: 'SERVER_TIMESTAMP',
     usedAt: null
-  }), 'توليد كود التفعيل');
+  }, 'توليد كود التفعيل');
 }
 
-// ---------- الوكلاء ----------
 export async function getAgent(phone) {
-  const ref = doc(db, 'agents', phone);
-  const snap = await withTimeout(getDoc(ref), 'جلب بيانات الوكيل');
-  return snap.exists() ? { id: snap.id, ...snap.data() } : null;
+  const data = await restGet(`agents/${phone}`, 'جلب بيانات الوكيل');
+  return data ? { id: phone, ...data } : null;
 }
 
 export async function createAgent(phone, pinHash, activationCode, plan, subscriptionEnd) {
-  const ref = doc(db, 'agents', phone);
-  await withTimeout(setDoc(ref, {
+  await restWrite(`agents/${phone}`, {
     phone,
     pinHash,
     activationCode,
     plan,
-    subscriptionStart: serverTimestamp(),
+    subscriptionStart: 'SERVER_TIMESTAMP',
     subscriptionEnd,
     isAdmin: false,
-    createdAt: serverTimestamp()
-  }), 'إنشاء حساب الوكيل');
+    createdAt: 'SERVER_TIMESTAMP'
+  }, 'إنشاء حساب الوكيل');
 }
 
 export async function updateAgentPin(phone, newPinHash) {
-  const ref = doc(db, 'agents', phone);
-  await updateDoc(ref, { pinHash: newPinHash });
+  await restWrite(`agents/${phone}`, { pinHash: newPinHash }, 'تحديث الرمز السري', ['pinHash']);
 }
 
-// ---------- استرجاع الرمز عبر واتساب (OTP) ----------
 export async function saveOtp(phone, otp) {
-  const ref = doc(db, 'otpRequests', phone);
-  const expiresAt = Date.now() + 5 * 60 * 1000; // 5 دقائق
-  await setDoc(ref, { otp, expiresAt, createdAt: serverTimestamp() });
+  const expiresAt = Date.now() + 5 * 60 * 1000;
+  await restWrite(`otpRequests/${phone}`, {
+    otp,
+    expiresAt,
+    createdAt: 'SERVER_TIMESTAMP'
+  }, 'إرسال رمز التحقق');
 }
 
 export async function verifyOtp(phone, otp) {
-  const ref = doc(db, 'otpRequests', phone);
-  const snap = await getDoc(ref);
-  if (!snap.exists()) return false;
-  const data = snap.data();
+  const data = await restGet(`otpRequests/${phone}`, 'التحقق من الرمز');
+  if (!data) return false;
   if (Date.now() > data.expiresAt) return false;
   return data.otp === otp;
 }
