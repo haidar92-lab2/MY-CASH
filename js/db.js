@@ -1,7 +1,17 @@
 import { firebaseConfig } from './firebase-config.js';
 
+// ============================================================
+// هذا الملف يستخدم Firestore REST API مباشرة (طلبات fetch عادية)
+// بدل مكتبة Firebase SDK الكاملة. السبب: بعض الشبكات تعيق الاتصال
+// المستمر (streaming) اللي تستخدمه المكتبة، بينما طلبات fetch
+// العادية (نفس طريقة فتح أي صفحة ويب) تشتغل بشكل أوثق حتى على
+// شبكات مقيدة.
+// ============================================================
+
 const PROJECT_ID = firebaseConfig.projectId;
 const BASE_URL = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/default/documents`;
+
+// مهلة 15 ثانية لأي طلب، حتى ما تعلق الشاشة بصمت
 function fetchWithTimeout(url, options, label) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), 15000);
@@ -15,6 +25,7 @@ function fetchWithTimeout(url, options, label) {
     });
 }
 
+// ---------- تحويل القيم من/إلى صيغة Firestore REST ----------
 function toValue(v) {
   if (v === null || v === undefined) return { nullValue: null };
   if (v === 'SERVER_TIMESTAMP') return { timestampValue: new Date().toISOString() };
@@ -71,12 +82,42 @@ async function restWrite(path, data, label, mergeFields) {
   return res.json();
 }
 
+async function restCreate(path, data, label) {
+  const res = await fetchWithTimeout(`${BASE_URL}/${path}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ fields: toFields(data) })
+  }, label);
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error('خطأ من الخادم (' + res.status + '): ' + text.slice(0, 150));
+  }
+  return res.json();
+}
+
+async function restList(path, label) {
+  const res = await fetchWithTimeout(`${BASE_URL}/${path}`, { method: 'GET' }, label);
+  if (res.status === 404) return [];
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error('خطأ من الخادم (' + res.status + '): ' + text.slice(0, 150));
+  }
+  const json = await res.json();
+  if (!json.documents) return [];
+  return json.documents.map((d) => ({
+    id: d.name.split('/').pop(),
+    ...fromFields(d.fields)
+  }));
+}
+
+// ---------- تشفير الرمز السري (بسيط، من طرف المتصفح) ----------
 export async function hashPin(pin) {
   const enc = new TextEncoder().encode(pin);
   const buf = await crypto.subtle.digest('SHA-256', enc);
   return Array.from(new Uint8Array(buf)).map((b) => b.toString(16).padStart(2, '0')).join('');
 }
 
+// ---------- أكواد التفعيل ----------
 export async function getActivationCode(code) {
   const id = code.trim().toUpperCase();
   const data = await restGet(`activationCodes/${id}`, 'التحقق من كود التفعيل');
@@ -104,6 +145,7 @@ export async function createActivationCode(code, plan) {
   }, 'توليد كود التفعيل');
 }
 
+// ---------- الوكلاء ----------
 export async function getAgent(phone) {
   const data = await restGet(`agents/${phone}`, 'جلب بيانات الوكيل');
   return data ? { id: phone, ...data } : null;
@@ -126,8 +168,9 @@ export async function updateAgentPin(phone, newPinHash) {
   await restWrite(`agents/${phone}`, { pinHash: newPinHash }, 'تحديث الرمز السري', ['pinHash']);
 }
 
+// ---------- استرجاع الرمز عبر واتساب (OTP) ----------
 export async function saveOtp(phone, otp) {
-  const expiresAt = Date.now() + 5 * 60 * 1000;
+  const expiresAt = Date.now() + 5 * 60 * 1000; // 5 دقائق
   await restWrite(`otpRequests/${phone}`, {
     otp,
     expiresAt,
@@ -142,11 +185,28 @@ export async function verifyOtp(phone, otp) {
   return data.otp === otp;
 }
 
-
-    export async function getBranchConfig(phone) {
-        return await restGet(`branches/${phone}`, 'جلب إعدادات المنفذ');
-    }
+// ---------- إعدادات المنفذ (الأجهزة المتوفرة) ----------
+export async function getBranchConfig(phone) {
+  return await restGet(`branches/${phone}`, 'جلب إعدادات المنفذ');
+}
 
 export async function saveBranchConfig(phone, devices) {
-    await restWrite(`branches/${phone}`, devices, 'حفظ إعدادات المنفذ');
+  await restWrite(`branches/${phone}`, devices, 'حفظ إعدادات المنفذ');
+}
+
+// ---------- التسويات ----------
+export async function createSettlement(phone, device, amount, commission) {
+  const now = new Date();
+  const dateKey = now.toISOString().slice(0, 10); // YYYY-MM-DD
+  await restCreate(`branches/${phone}/settlements`, {
+    device,
+    amount,
+    commission,
+    dateKey,
+    createdAt: 'SERVER_TIMESTAMP'
+  }, 'حفظ التسوية');
+}
+
+export async function listSettlements(phone) {
+  return await restList(`branches/${phone}/settlements`, 'جلب التسويات');
 }
