@@ -217,6 +217,9 @@ export async function createSettlement(phone, device, amount, commission) {
     lastCommission: commission
   };
   await restWrite(`branches/${phone}/dailyStats/${dateKey}`, updated, 'تحديث ملخص اليوم');
+
+  // الرصيد يزيد بالمبلغ الأصلي + عمولة الوكيل (نفس ما ينزل بالمحفظة فعلياً)
+  await adjustDeviceBalance(phone, device, amount + commission);
 }
 
 export async function getDailyStats(phone, dateKey) {
@@ -225,4 +228,31 @@ export async function getDailyStats(phone, dateKey) {
 
 export async function listSettlements(phone) {
   return await restList(`branches/${phone}/settlements`, 'جلب التسويات');
+}
+
+// ---------- الرصيد المعلق لكل جهاز (مستند واحد لكل منفذ، بدون List) ----------
+export async function getDeviceBalances(phone) {
+  const data = await restGet(`branches/${phone}/meta/balances`, 'جلب أرصدة الأجهزة');
+  return data || {};
+}
+
+async function adjustDeviceBalance(phone, device, delta) {
+  const current = await getDeviceBalances(phone);
+  const updated = { ...current, [device]: (current[device] || 0) + delta };
+  await restWrite(`branches/${phone}/meta/balances`, updated, 'تحديث رصيد الجهاز');
+}
+
+export async function createWithdrawal(phone, device, bankName, amount) {
+  const now = new Date();
+  const dateKey = now.toISOString().slice(0, 10);
+  await restCreate(`branches/${phone}/withdrawals`, {
+    device,
+    bankName,
+    amount,
+    dateKey,
+    createdAt: 'SERVER_TIMESTAMP'
+  }, 'حفظ السحب البنكي');
+
+  // الرصيد ينقص بمقدار المبلغ المسحوب (كامل أو جزئي)
+  await adjustDeviceBalance(phone, device, -amount);
 }
