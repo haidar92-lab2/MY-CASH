@@ -205,6 +205,22 @@ export async function createSettlement(phone, device, amount, commission) {
     dateKey,
     createdAt: 'SERVER_TIMESTAMP'
   }, 'حفظ التسوية');
+
+  // تحديث ملخص اليوم (نقرأه لاحقاً بعملية واحدة بدل سرد كل التسويات)
+  const existing = await restGet(`branches/${phone}/dailyStats/${dateKey}`, 'جلب ملخص اليوم');
+  const updated = {
+    totalCommission: (existing && existing.totalCommission || 0) + commission,
+    totalAmount: (existing && existing.totalAmount || 0) + amount,
+    count: (existing && existing.count || 0) + 1,
+    lastDevice: device,
+    lastAmount: amount,
+    lastCommission: commission
+  };
+  await restWrite(`branches/${phone}/dailyStats/${dateKey}`, updated, 'تحديث ملخص اليوم');
+}
+
+export async function getDailyStats(phone, dateKey) {
+  return await restGet(`branches/${phone}/dailyStats/${dateKey}`, 'جلب ملخص اليوم');
 }
 
 export async function listSettlements(phone) {
