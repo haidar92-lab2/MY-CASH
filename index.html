@@ -152,14 +152,53 @@
   </div>
 </section>
 
-<!-- لوحة مبدئية بعد الدخول -->
+<!-- لوحة التحكم الرئيسية -->
 <section id="screen-dashboard" class="screen">
+  <div class="dash-header">
+    <div>
+      <div class="brand-name">أهلاً بيك</div>
+      <div class="brand-sub" id="dash-date"></div>
+    </div>
+    <button class="icon-btn" id="btn-logout" title="تسجيل خروج">⎋</button>
+  </div>
+
+  <div class="card profit-card">
+    <div class="subtitle">أرباحك اليوم</div>
+    <div class="profit-value" id="dash-profit-today">0 د.ع</div>
+    <div class="subtitle" id="dash-count-today">0 تسوية اليوم</div>
+  </div>
+
+  <button class="btn btn-primary" id="btn-open-add-settlement">+ إدخال تسوية جديدة</button>
+
+  <div class="card" style="margin-top:14px">
+    <div class="subtitle" style="margin-bottom:10px">آخر التسويات</div>
+    <div id="dash-recent-list" class="recent-list">
+      <div class="subtitle">ماكو تسويات لهسه</div>
+    </div>
+  </div>
+</section>
+
+<!-- شاشة إدخال تسوية -->
+<section id="screen-add-settlement" class="screen">
+  <div class="top-actions">
+    <button class="back-btn" id="link-back-dashboard">‹ رجوع</button>
+  </div>
   <div class="card">
-    <div class="title">تم تسجيل الدخول بنجاح</div>
-    <div class="subtitle">اشتراكك الحالي: <span id="dashboard-plan">—</span></div>
-    <div class="hint-box">هذي شاشة مبدئية. الشاشة الرئيسية الفعلية (الأرباح، الأرصدة، التسويات) تُبنى بالمرحلة الجاية.</div>
+    <div class="title">إدخال تسوية</div>
+    <label>اختر الجهاز</label>
+    <div class="device-chips" id="settlement-device-chips"></div>
+
+    <label>مبلغ التسوية</label>
+    <input type="text" id="settlement-amount" placeholder="1,000,000" inputmode="numeric" />
+
+    <div class="commission-box">
+      <span>عمولتك من هذي التسوية</span>
+      <span id="settlement-commission">0 د.ع</span>
+    </div>
+
+    <div class="error-text" id="settlement-error"></div>
     <div style="height:6px"></div>
-    <button class="btn btn-ghost" id="btn-logout">تسجيل خروج</button>
+    <button class="btn btn-primary" id="btn-save-settlement">حفظ التسوية</button>
   </div>
 </section>
 
