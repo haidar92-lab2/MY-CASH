@@ -1,7 +1,8 @@
 import { SUPPORT_PHONE } from './firebase-config.js';
 import {
   getActivationCode, bindActivationCode, getAgent, createAgent,
-  hashPin, updateAgentPin, saveOtp, verifyOtp
+  hashPin, updateAgentPin, saveOtp, verifyOtp,
+  getBranchConfig, saveBranchConfig
 } from './db.js';
 
 const PLAN_LABELS = { '1m': 'شهر واحد', '3m': '3 أشهر', '12m': 'سنة كاملة' };
@@ -19,6 +20,22 @@ function setError(elId, msg) {
 }
 
 document.getElementById('support-phone-display').textContent = SUPPORT_PHONE;
+
+// ---------------- الانتقال بعد الدخول: تحقق من إعداد المنفذ أول ----------------
+async function goAfterLogin(phone, plan) {
+  document.getElementById('dashboard-plan').textContent = PLAN_LABELS[plan] || plan;
+  try {
+    const branch = await getBranchConfig(phone);
+    if (!branch) {
+      show('screen-device-setup');
+    } else {
+      show('screen-dashboard');
+    }
+  } catch (e) {
+    // لو صار خطأ بالتحقق، نكمل عادي لصفحة الإعداد حتى ما يعلق الوكيل
+    show('screen-device-setup');
+  }
+}
 
 // ---------------- حالة البدء ----------------
 window.addEventListener('DOMContentLoaded', () => {
@@ -87,12 +104,11 @@ document.getElementById('btn-signup').addEventListener('click', async () => {
     await bindActivationCode(code, phone);
 
     localStorage.setItem('agentPhone', phone);
-    document.getElementById('dashboard-plan').textContent = PLAN_LABELS[plan] || plan;
-    show('screen-dashboard');
+    await goAfterLogin(phone, plan);
   } catch (e) {
-    setError('signup-error', 'صار خطأ، حاول مرة ثانية');
+    setError('signup-error', 'صار خطأ حاول مرة ثانية');
   } finally {
-    btn.disabled = false; btn.textContent = 'إنشاء الحساب';
+    btn.disabled = false; btn.textContent = 'إنشاء الحاسب';
   }
 });
 
@@ -116,13 +132,12 @@ document.getElementById('btn-login').addEventListener('click', async () => {
     if (pinHash !== agent.pinHash) { setError('login-error', 'الرمز السري غير صحيح'); return; }
 
     if (agent.subscriptionEnd && Date.now() > agent.subscriptionEnd) {
-      setError('login-error', 'انتهى اشتراكك، تواصل لتجديد الاشتراك');
+      setError('login-error', 'انتهى اشتراكك, تواصل لتجديد الاشتراك');
       return;
     }
 
     localStorage.setItem('agentPhone', phone);
-    document.getElementById('dashboard-plan').textContent = PLAN_LABELS[agent.plan] || agent.plan;
-    show('screen-dashboard');
+    await goAfterLogin(phone, agent.plan);
   } catch (e) {
     setError('login-error', 'فشل الاتصال، حاول مرة ثانية');
   } finally {
@@ -192,13 +207,41 @@ document.getElementById('btn-reset-pin').addEventListener('click', async () => {
     document.getElementById('login-phone').value = phone;
     setError('login-error', '');
   } catch (e) {
-    setError('forgot2-error', 'صار خطأ، حاول مرة ثانية');
+    setError('forgot2-error', 'صار خطأ حاول مرة ثانية');
   } finally {
     btn.disabled = false; btn.textContent = 'تأكيد وتحديث الرمز';
   }
 });
 
 document.getElementById('link-back-forgot1').addEventListener('click', () => show('screen-forgot-1'));
+
+// ---------------- حفظ إعداد الأجهزة ----------------
+document.getElementById('btn-save-devices').addEventListener('click', async () => {
+  const phone = localStorage.getItem('agentPhone');
+  const checked = Array.from(document.querySelectorAll('#screen-device-setup input[type="checkbox"]:checked'));
+  setError('device-setup-error', '');
+
+  if (checked.length === 0) {
+    setError('device-setup-error', 'اختر جهاز واحد على الأقل');
+    return;
+  }
+
+  const btn = document.getElementById('btn-save-devices');
+  btn.disabled = true; btn.textContent = 'جاري الحفظ...';
+
+  try {
+    const devices = {};
+    document.querySelectorAll('#screen-device-setup input[type="checkbox"]').forEach((cb) => {
+      devices[cb.value.replace(/\s/g, '_')] = cb.checked;
+    });
+    await saveBranchConfig(phone, devices);
+    show('screen-dashboard');
+  } catch (e) {
+    setError('device-setup-error', e && e.message ? e.message : 'صار خطأ، حاول مرة ثانية');
+  } finally {
+    btn.disabled = false; btn.textContent = 'حفظ ومتابعة';
+  }
+});
 
 // ---------------- تسجيل الخروج ----------------
 document.getElementById('btn-logout').addEventListener('click', () => {
