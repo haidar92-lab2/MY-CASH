@@ -141,3 +141,12 @@ export async function verifyOtp(phone, otp) {
   if (Date.now() > data.expiresAt) return false;
   return data.otp === otp;
 }
+
+
+    export async function getBranchConfig(phone) {
+        return await restGet(`branches/${phone}`, 'جلب إعدادات المنفذ');
+    }
+
+export async function saveBranchConfig(phone, devices) {
+    await restWrite(`branches/${phone}`, devices, 'حفظ إعدادات المنفذ');
+}
