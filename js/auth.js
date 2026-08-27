@@ -3,7 +3,7 @@ import {
   getActivationCode, bindActivationCode, getAgent, createAgent,
   hashPin, updateAgentPin, saveOtp, verifyOtp,
   getBranchConfig, saveBranchConfig,
-  createSettlement, listSettlements
+  createSettlement, getDailyStats
 } from './db.js';
 
 const COMMISSION_RATE = 0.003; // 3 بالألف عمولة الوكيل
@@ -53,29 +53,25 @@ async function loadDashboard(phone) {
   dateEl.textContent = new Date().toLocaleDateString('ar-EG-u-nu-latn', { weekday: 'long', day: 'numeric', month: 'long' });
 
   try {
-    const settlements = await listSettlements(phone);
     const today = new Date().toISOString().slice(0, 10);
-    const todaySettlements = settlements.filter((s) => s.dateKey === today);
+    const stats = await getDailyStats(phone, today);
 
-    const totalProfit = todaySettlements.reduce((sum, s) => sum + (s.commission || 0), 0);
+    const totalProfit = (stats && stats.totalCommission) || 0;
+    const count = (stats && stats.count) || 0;
     document.getElementById('dash-profit-today').textContent = fmtNum(totalProfit) + ' د.ع';
-    document.getElementById('dash-count-today').textContent = todaySettlements.length + ' تسوية اليوم';
+    document.getElementById('dash-count-today').textContent = count + ' تسوية اليوم';
 
     const recentList = document.getElementById('dash-recent-list');
-    const recent = settlements
-      .sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''))
-      .slice(0, 5);
-
-    if (recent.length === 0) {
-      recentList.innerHTML = '<div class="subtitle">ماكو تسويات لهسه</div>';
-    } else {
-      recentList.innerHTML = recent.map((s) => `
+    if (stats && stats.lastDevice) {
+      recentList.innerHTML = `
         <div class="recent-item">
-          <span class="r-device">${DEVICE_LABELS[s.device] || s.device}</span>
-          <span>${fmtNum(s.amount)} د.ع</span>
-          <span class="r-commission">+${fmtNum(s.commission)}</span>
+          <span class="r-device">${DEVICE_LABELS[stats.lastDevice] || stats.lastDevice}</span>
+          <span>${fmtNum(stats.lastAmount)} د.ع</span>
+          <span class="r-commission">+${fmtNum(stats.lastCommission)}</span>
         </div>
-      `).join('');
+      `;
+    } else {
+      recentList.innerHTML = '<div class="subtitle">ماكو تسويات لهسه</div>';
     }
   } catch (e) {
     document.getElementById('dash-count-today').textContent = 'تعذر تحميل البيانات، حدث الصفحة';
@@ -177,7 +173,7 @@ document.getElementById('btn-login').addEventListener('click', async () => {
     if (pinHash !== agent.pinHash) { setError('login-error', 'الرمز السري غير صحيح'); return; }
 
     if (agent.subscriptionEnd && Date.now() > agent.subscriptionEnd) {
-      setError('login-error', 'انتهى اشتراكك، تواصل لتجديد الاشتراك');
+      setError('login-error', 'انتهى اشتراكك, تواصل لتجديد الاشتراك');
       return;
     }
 
