@@ -2,8 +2,15 @@ import { SUPPORT_PHONE } from './firebase-config.js';
 import {
   getActivationCode, bindActivationCode, getAgent, createAgent,
   hashPin, updateAgentPin, saveOtp, verifyOtp,
-  getBranchConfig, saveBranchConfig
+  getBranchConfig, saveBranchConfig,
+  createSettlement, listSettlements
 } from './db.js';
+
+const COMMISSION_RATE = 0.003; // 3 بالألف عمولة الوكيل
+const DEVICE_LABELS = {
+  Switch_Rasheed: 'Switch Rasheed', Switch_NBI: 'Switch NBI', Switch_BOB: 'Switch BOB',
+  Qi: 'Qi', Qasa: 'Qasa', AlArab: 'AlArab', Tabadul: 'Tabadul', Blue: 'Blue'
+};
 
 const PLAN_LABELS = { '1m': 'شهر واحد', '3m': '3 أشهر', '12m': 'سنة كاملة' };
 const PLAN_DAYS = { '1m': 30, '3m': 90, '12m': 365 };
@@ -23,17 +30,55 @@ document.getElementById('support-phone-display').textContent = SUPPORT_PHONE;
 
 // ---------------- الانتقال بعد الدخول: تحقق من إعداد المنفذ أول ----------------
 async function goAfterLogin(phone, plan) {
-  document.getElementById('dashboard-plan').textContent = PLAN_LABELS[plan] || plan;
   try {
     const branch = await getBranchConfig(phone);
     if (!branch) {
       show('screen-device-setup');
     } else {
+      window.__myDevices = branch;
       show('screen-dashboard');
+      loadDashboard(phone);
     }
   } catch (e) {
     // لو صار خطأ بالتحقق، نكمل عادي لصفحة الإعداد حتى ما يعلق الوكيل
     show('screen-device-setup');
+  }
+}
+
+const fmtNum = (n) => Math.round(n).toLocaleString('en-US');
+
+// ---------------- تحميل بيانات لوحة التحكم ----------------
+async function loadDashboard(phone) {
+  const dateEl = document.getElementById('dash-date');
+  dateEl.textContent = new Date().toLocaleDateString('ar-EG-u-nu-latn', { weekday: 'long', day: 'numeric', month: 'long' });
+
+  try {
+    const settlements = await listSettlements(phone);
+    const today = new Date().toISOString().slice(0, 10);
+    const todaySettlements = settlements.filter((s) => s.dateKey === today);
+
+    const totalProfit = todaySettlements.reduce((sum, s) => sum + (s.commission || 0), 0);
+    document.getElementById('dash-profit-today').textContent = fmtNum(totalProfit) + ' د.ع';
+    document.getElementById('dash-count-today').textContent = todaySettlements.length + ' تسوية اليوم';
+
+    const recentList = document.getElementById('dash-recent-list');
+    const recent = settlements
+      .sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''))
+      .slice(0, 5);
+
+    if (recent.length === 0) {
+      recentList.innerHTML = '<div class="subtitle">ماكو تسويات لهسه</div>';
+    } else {
+      recentList.innerHTML = recent.map((s) => `
+        <div class="recent-item">
+          <span class="r-device">${DEVICE_LABELS[s.device] || s.device}</span>
+          <span>${fmtNum(s.amount)} د.ع</span>
+          <span class="r-commission">+${fmtNum(s.commission)}</span>
+        </div>
+      `).join('');
+    }
+  } catch (e) {
+    document.getElementById('dash-count-today').textContent = 'تعذر تحميل البيانات، حدث الصفحة';
   }
 }
 
@@ -106,9 +151,9 @@ document.getElementById('btn-signup').addEventListener('click', async () => {
     localStorage.setItem('agentPhone', phone);
     await goAfterLogin(phone, plan);
   } catch (e) {
-    setError('signup-error', 'صار خطأ حاول مرة ثانية');
+    setError('signup-error', 'صار خطأ، حاول مرة ثانية');
   } finally {
-    btn.disabled = false; btn.textContent = 'إنشاء الحاسب';
+    btn.disabled = false; btn.textContent = 'إنشاء الحساب';
   }
 });
 
@@ -132,7 +177,7 @@ document.getElementById('btn-login').addEventListener('click', async () => {
     if (pinHash !== agent.pinHash) { setError('login-error', 'الرمز السري غير صحيح'); return; }
 
     if (agent.subscriptionEnd && Date.now() > agent.subscriptionEnd) {
-      setError('login-error', 'انتهى اشتراكك, تواصل لتجديد الاشتراك');
+      setError('login-error', 'انتهى اشتراكك، تواصل لتجديد الاشتراك');
       return;
     }
 
@@ -207,7 +252,7 @@ document.getElementById('btn-reset-pin').addEventListener('click', async () => {
     document.getElementById('login-phone').value = phone;
     setError('login-error', '');
   } catch (e) {
-    setError('forgot2-error', 'صار خطأ حاول مرة ثانية');
+    setError('forgot2-error', 'صار خطأ، حاول مرة ثانية');
   } finally {
     btn.disabled = false; btn.textContent = 'تأكيد وتحديث الرمز';
   }
@@ -235,11 +280,80 @@ document.getElementById('btn-save-devices').addEventListener('click', async () =
       devices[cb.value.replace(/\s/g, '_')] = cb.checked;
     });
     await saveBranchConfig(phone, devices);
+    window.__myDevices = devices;
     show('screen-dashboard');
+    loadDashboard(phone);
   } catch (e) {
     setError('device-setup-error', e && e.message ? e.message : 'صار خطأ، حاول مرة ثانية');
   } finally {
     btn.disabled = false; btn.textContent = 'حفظ ومتابعة';
+  }
+});
+
+// ---------------- شاشة إدخال تسوية ----------------
+let selectedDevice = null;
+
+document.getElementById('btn-open-add-settlement').addEventListener('click', () => {
+  const devices = window.__myDevices || {};
+  const enabledKeys = Object.keys(devices).filter((k) => devices[k]);
+  const chipsWrap = document.getElementById('settlement-device-chips');
+  chipsWrap.innerHTML = '';
+  selectedDevice = null;
+
+  if (enabledKeys.length === 0) {
+    chipsWrap.innerHTML = '<div class="subtitle">ماكو أجهزة مفعّلة، راجع إعدادات المنفذ</div>';
+  } else {
+    enabledKeys.forEach((key, i) => {
+      const chip = document.createElement('div');
+      chip.className = 'device-chip' + (i === 0 ? ' selected' : '');
+      chip.textContent = DEVICE_LABELS[key] || key;
+      chip.dataset.key = key;
+      chip.addEventListener('click', () => {
+        chipsWrap.querySelectorAll('.device-chip').forEach((c) => c.classList.remove('selected'));
+        chip.classList.add('selected');
+        selectedDevice = key;
+      });
+      chipsWrap.appendChild(chip);
+    });
+    selectedDevice = enabledKeys[0];
+  }
+
+  document.getElementById('settlement-amount').value = '';
+  document.getElementById('settlement-commission').textContent = '0 د.ع';
+  setError('settlement-error', '');
+  show('screen-add-settlement');
+});
+
+document.getElementById('link-back-dashboard').addEventListener('click', () => show('screen-dashboard'));
+
+document.getElementById('settlement-amount').addEventListener('input', (e) => {
+  const raw = e.target.value.replace(/[^0-9]/g, '');
+  const val = raw ? parseInt(raw, 10) : 0;
+  e.target.value = raw ? fmtNum(val) : '';
+  document.getElementById('settlement-commission').textContent = fmtNum(val * COMMISSION_RATE) + ' د.ع';
+});
+
+document.getElementById('btn-save-settlement').addEventListener('click', async () => {
+  const phone = localStorage.getItem('agentPhone');
+  const raw = document.getElementById('settlement-amount').value.replace(/[^0-9]/g, '');
+  const amount = raw ? parseInt(raw, 10) : 0;
+  setError('settlement-error', '');
+
+  if (!selectedDevice) { setError('settlement-error', 'اختر جهاز أول'); return; }
+  if (amount <= 0) { setError('settlement-error', 'أدخل مبلغ التسوية'); return; }
+
+  const btn = document.getElementById('btn-save-settlement');
+  btn.disabled = true; btn.textContent = 'جاري الحفظ...';
+
+  try {
+    const commission = Math.round(amount * COMMISSION_RATE);
+    await createSettlement(phone, selectedDevice, amount, commission);
+    show('screen-dashboard');
+    await loadDashboard(phone);
+  } catch (e) {
+    setError('settlement-error', e && e.message ? e.message : 'صار خطأ، حاول مرة ثانية');
+  } finally {
+    btn.disabled = false; btn.textContent = 'حفظ التسوية';
   }
 });
 
