@@ -198,6 +198,7 @@ export async function saveBranchConfig(phone, devices) {
 export async function createSettlement(phone, device, amount, commission) {
   const now = new Date();
   const dateKey = now.toISOString().slice(0, 10); // YYYY-MM-DD
+  const timeStr = now.toLocaleTimeString('ar-EG-u-nu-latn', { hour: '2-digit', minute: '2-digit' });
   await restCreate(`branches/${phone}/settlements`, {
     device,
     amount,
@@ -211,6 +212,10 @@ export async function createSettlement(phone, device, amount, commission) {
   const devKeyAmount = `${device}_amount`;
   const devKeyCommission = `${device}_commission`;
   const devKeyCount = `${device}_count`;
+
+  const txList = parseTransactions(existing);
+  txList.push({ time: timeStr, device, amount, commission, type: 'settlement' });
+
   const updated = {
     totalCommission: (existing && existing.totalCommission || 0) + commission,
     totalAmount: (existing && existing.totalAmount || 0) + amount,
@@ -220,12 +225,64 @@ export async function createSettlement(phone, device, amount, commission) {
     lastCommission: commission,
     [devKeyAmount]: (existing && existing[devKeyAmount] || 0) + amount,
     [devKeyCommission]: (existing && existing[devKeyCommission] || 0) + commission,
-    [devKeyCount]: (existing && existing[devKeyCount] || 0) + 1
+    [devKeyCount]: (existing && existing[devKeyCount] || 0) + 1,
+    totalChargeAmount: (existing && existing.totalChargeAmount) || 0,
+    chargeCount: (existing && existing.chargeCount) || 0,
+    transactionsJson: JSON.stringify(txList)
   };
   await restWrite(`branches/${phone}/dailyStats/${dateKey}`, updated, 'تحديث ملخص اليوم');
 
   // الرصيد يزيد بالمبلغ الأصلي + عمولة الوكيل (نفس ما ينزل بالمحفظة فعلياً)
   await adjustDeviceBalance(phone, device, amount + commission);
+}
+
+function parseTransactions(existing) {
+  if (!existing || !existing.transactionsJson) return [];
+  try {
+    return JSON.parse(existing.transactionsJson);
+  } catch (e) {
+    return [];
+  }
+}
+
+export async function createCharge(phone, device, amount) {
+  const now = new Date();
+  const dateKey = now.toISOString().slice(0, 10);
+  const timeStr = now.toLocaleTimeString('ar-EG-u-nu-latn', { hour: '2-digit', minute: '2-digit' });
+
+  await restCreate(`branches/${phone}/charges`, {
+    device,
+    amount,
+    dateKey,
+    createdAt: 'SERVER_TIMESTAMP'
+  }, 'حفظ الشحن والتحويل');
+
+  const existing = await restGet(`branches/${phone}/dailyStats/${dateKey}`, 'جلب ملخص اليوم');
+  const devKeyChargeAmount = `${device}_charge_amount`;
+  const devKeyChargeCount = `${device}_charge_count`;
+
+  const txList = parseTransactions(existing);
+  txList.push({ time: timeStr, device, amount, commission: 0, type: 'charge' });
+
+  const updated = {
+    totalCommission: (existing && existing.totalCommission) || 0,
+    totalAmount: (existing && existing.totalAmount) || 0,
+    count: (existing && existing.count) || 0,
+    totalChargeAmount: (existing && existing.totalChargeAmount || 0) + amount,
+    chargeCount: (existing && existing.chargeCount || 0) + 1,
+    [devKeyChargeAmount]: (existing && existing[devKeyChargeAmount] || 0) + amount,
+    [devKeyChargeCount]: (existing && existing[devKeyChargeCount] || 0) + 1,
+    transactionsJson: JSON.stringify(txList)
+  };
+  if (existing && existing.lastDevice) {
+    updated.lastDevice = existing.lastDevice;
+    updated.lastAmount = existing.lastAmount;
+    updated.lastCommission = existing.lastCommission;
+  }
+  await restWrite(`branches/${phone}/dailyStats/${dateKey}`, updated, 'تحديث ملخص اليوم');
+
+  // الرصيد ينقص بمبلغ الشحن (نفس مبدأ السحب البنكي — هذا الكاش يغني عن سحب مصرفي حقيقي)
+  await adjustDeviceBalance(phone, device, -amount);
 }
 
 export async function getDailyStats(phone, dateKey) {
@@ -236,7 +293,7 @@ export async function listSettlements(phone) {
   return await restList(`branches/${phone}/settlements`, 'جلب التسويات');
 }
 
-// ---------- الرصيد المعلق لكل جهاز (مستند واحد لكل منفذ, بدون List) ----------
+// ---------- الرصيد المعلق لكل جهاز (مستند واحد لكل منفذ، بدون List) ----------
 export async function getDeviceBalances(phone) {
   const data = await restGet(`branches/${phone}/meta/balances`, 'جلب أرصدة الأجهزة');
   return data || {};
@@ -259,6 +316,6 @@ export async function createWithdrawal(phone, device, bankName, amount) {
     createdAt: 'SERVER_TIMESTAMP'
   }, 'حفظ السحب البنكي');
 
-  // الرصيد ينقص بمقدار المبلظ المسحوب (كامل أو جزئي)
+  // الرصيد ينقص بمقدار المبلغ المسحوب (كامل أو جزئي)
   await adjustDeviceBalance(phone, device, -amount);
 }
