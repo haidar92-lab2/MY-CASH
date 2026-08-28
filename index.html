@@ -171,6 +171,15 @@
   <button class="btn btn-primary" id="btn-open-add-settlement">+ إدخال تسوية جديدة</button>
 
   <div class="card" style="margin-top:14px">
+    <div class="subtitle" style="margin-bottom:10px">الرصيد المعلق بالأجهزة</div>
+    <div id="dash-balances-list" class="recent-list">
+      <div class="subtitle">لا يوجد رصيد معلق</div>
+    </div>
+    <div style="height:10px"></div>
+    <button class="btn btn-ghost" id="btn-open-withdrawal">سحب بنكي</button>
+  </div>
+
+  <div class="card" style="margin-top:14px">
     <div class="subtitle" style="margin-bottom:10px">آخر التسويات</div>
     <div id="dash-recent-list" class="recent-list">
       <div class="subtitle">ماكو تسويات لهسه</div>
@@ -199,6 +208,33 @@
     <div class="error-text" id="settlement-error"></div>
     <div style="height:6px"></div>
     <button class="btn btn-primary" id="btn-save-settlement">حفظ التسوية</button>
+  </div>
+</section>
+
+<!-- شاشة سحب بنكي -->
+<section id="screen-add-withdrawal" class="screen">
+  <div class="top-actions">
+    <button class="back-btn" id="link-back-dashboard-2">‹ رجوع</button>
+  </div>
+  <div class="card">
+    <div class="title">سحب بنكي</div>
+    <label>اختر الجهاز</label>
+    <div class="device-chips" id="withdrawal-device-chips"></div>
+
+    <div class="commission-box">
+      <span>الرصيد المعلق الحالي</span>
+      <span id="withdrawal-current-balance">0 د.ع</span>
+    </div>
+
+    <label>اسم المصرف</label>
+    <input type="text" id="withdrawal-bank" placeholder="مثلاً: مصرف الرافدين" />
+
+    <label>المبلغ المسحوب</label>
+    <input type="text" id="withdrawal-amount" placeholder="1,000,000" inputmode="numeric" />
+
+    <div class="error-text" id="withdrawal-error"></div>
+    <div style="height:6px"></div>
+    <button class="btn btn-primary" id="btn-save-withdrawal">حفظ السحب</button>
   </div>
 </section>
 
