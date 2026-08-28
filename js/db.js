@@ -208,13 +208,19 @@ export async function createSettlement(phone, device, amount, commission) {
 
   // تحديث ملخص اليوم (نقرأه لاحقاً بعملية واحدة بدل سرد كل التسويات)
   const existing = await restGet(`branches/${phone}/dailyStats/${dateKey}`, 'جلب ملخص اليوم');
+  const devKeyAmount = `${device}_amount`;
+  const devKeyCommission = `${device}_commission`;
+  const devKeyCount = `${device}_count`;
   const updated = {
     totalCommission: (existing && existing.totalCommission || 0) + commission,
     totalAmount: (existing && existing.totalAmount || 0) + amount,
     count: (existing && existing.count || 0) + 1,
     lastDevice: device,
     lastAmount: amount,
-    lastCommission: commission
+    lastCommission: commission,
+    [devKeyAmount]: (existing && existing[devKeyAmount] || 0) + amount,
+    [devKeyCommission]: (existing && existing[devKeyCommission] || 0) + commission,
+    [devKeyCount]: (existing && existing[devKeyCount] || 0) + 1
   };
   await restWrite(`branches/${phone}/dailyStats/${dateKey}`, updated, 'تحديث ملخص اليوم');
 
@@ -230,7 +236,7 @@ export async function listSettlements(phone) {
   return await restList(`branches/${phone}/settlements`, 'جلب التسويات');
 }
 
-// ---------- الرصيد المعلق لكل جهاز (مستند واحد لكل منفذ، بدون List) ----------
+// ---------- الرصيد المعلق لكل جهاز (مستند واحد لكل منفذ, بدون List) ----------
 export async function getDeviceBalances(phone) {
   const data = await restGet(`branches/${phone}/meta/balances`, 'جلب أرصدة الأجهزة');
   return data || {};
@@ -253,6 +259,6 @@ export async function createWithdrawal(phone, device, bankName, amount) {
     createdAt: 'SERVER_TIMESTAMP'
   }, 'حفظ السحب البنكي');
 
-  // الرصيد ينقص بمقدار المبلغ المسحوب (كامل أو جزئي)
+  // الرصيد ينقص بمقدار المبلظ المسحوب (كامل أو جزئي)
   await adjustDeviceBalance(phone, device, -amount);
 }
