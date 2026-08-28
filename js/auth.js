@@ -449,3 +449,81 @@ document.getElementById('btn-logout').addEventListener('click', () => {
   localStorage.removeItem('agentPhone');
   show('screen-login');
 });
+
+// ---------------- الكشف اليومي المفصّل ----------------
+let reportDate = new Date();
+
+async function loadDailyReport() {
+    const phone = localStorage.getItem('agentPhone');
+    const dateKey = reportDate.toISOString().slice(0, 10);
+    document.getElementById('daily-report-date').textContent =
+          reportDate.toLocaleDateString('ar-EG-u-nu-latn', { weekday: 'long', day: 'numeric', month: 'long' });
+
+  const tableEl = document.getElementById('daily-report-table');
+    tableEl.innerHTML = '<div class="subtitle">جاري التحميل...</div>';
+
+  try {
+        const stats = await getDailyStats(phone, dateKey);
+        const total = (stats && stats.totalCommission) || 0;
+        document.getElementById('daily-report-total').textContent = fmtNum(total) + ' د.ع';
+
+      if (!stats) {
+              tableEl.innerHTML = '<div class="subtitle">ماكو تسويات بهذا اليوم</div>';
+              return;
+      }
+
+      const deviceKeys = Object.keys(DEVICE_LABELS);
+        const rows = deviceKeys
+          .map((key) => ({
+                    key,
+                    amount: stats[`${key}_amount`] || 0,
+                    commission: stats[`${key}_commission`] || 0,
+                    count: stats[`${key}_count`] || 0
+          }))
+          .filter((r) => r.count > 0);
+
+      if (rows.length === 0) {
+              tableEl.innerHTML = '<div class="subtitle">ماكو تسويات بهذا اليوم</div>';
+              return;
+      }
+
+      let html = `
+            <div class="report-row header">
+                    <span>الجهاز</span>
+                            <span class="r-num">عدد</span>
+                                    <span class="r-num">العمولة</span>
+                                          </div>
+                                              `;
+        html += rows.map((r) => `
+              <div class="report-row">
+                      <span class="r-name">${DEVICE_LABELS[r.key] || r.key}</span>
+                              <span class="r-num">${r.count}</span>
+                                      <span class="r-num r-commission">${fmtNum(r.commission)}</span>
+                                            </div>
+                                                `).join('');
+        tableEl.innerHTML = html;
+  } catch (e) {
+        tableEl.innerHTML = '<div class="subtitle">تعذر تحميل الكشف، حدث الصفحة</div>';
+  }
+}
+
+document.getElementById('btn-open-daily-report').addEventListener('click', () => {
+    reportDate = new Date();
+    show('screen-daily-report');
+    loadDailyReport();
+});
+
+document.getElementById('link-back-dashboard-3').addEventListener('click', () => show('screen-dashboard'));
+
+document.getElementById('btn-prev-day').addEventListener('click', () => {
+    reportDate.setDate(reportDate.getDate() - 1);
+    loadDailyReport();
+});
+
+document.getElementById('btn-next-day').addEventListener('click', () => {
+    const tomorrow = new Date(reportDate);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    if (tomorrow > new Date()) return;
+    reportDate = tomorrow;
+    loadDailyReport();
+});
