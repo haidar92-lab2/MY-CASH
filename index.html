@@ -168,7 +168,14 @@
     <div class="subtitle" id="dash-count-today">0 تسوية اليوم</div>
   </div>
 
+  <div class="card" style="margin-top:10px">
+    <div class="subtitle">الشحن والتحويل</div>
+    <div class="profit-value" id="dash-charge-today" style="font-size:24px">0 د.ع</div>
+  </div>
+
   <button class="btn btn-primary" id="btn-open-add-settlement">+ إدخال تسوية جديدة</button>
+  <div style="height:10px"></div>
+  <button class="btn btn-primary" id="btn-open-add-charge">+ شحن وتحويل</button>
   <div style="height:10px"></div>
   <button class="btn btn-ghost" id="btn-open-daily-report">الكشف اليومي المفصّل</button>
   <div style="height:10px"></div>
@@ -210,6 +217,28 @@
     </div>
 
     <div id="daily-report-table" class="report-table"></div>
+
+    <div class="subtitle" style="margin-top:18px;margin-bottom:8px">كل الحركات بالتفصيل</div>
+    <div id="daily-report-transactions" class="report-table"></div>
+  </div>
+</section>
+
+<!-- شاشة الشحن والتحويل -->
+<section id="screen-add-charge" class="screen">
+  <div class="top-actions">
+    <button class="back-btn" id="link-back-dashboard-5">‹ رجوع</button>
+  </div>
+  <div class="card">
+    <div class="title">شحن وتحويل</div>
+    <label>اختر الجهاز</label>
+    <div class="device-chips" id="charge-device-chips"></div>
+
+    <label>المبلغ المستلم كاش (نفس مبلغ الشحن)/label>
+    <input type="text" id="charge-amount" placeholder="1,000,000" inputmode="numeric" />
+
+    <div class="error-text" id="charge-error"></div>
+    <div style="height:6px"></div>
+    <button class="btn btn-primary" id="btn-save-charge">ح٠ظ العملية</button>
   </div>
 </section>
 
@@ -274,7 +303,7 @@
     </div>
 
     <label>اسم المصرف</label>
-    <input type="text" id="withdrawal-bank" placeholder="مثلاً: مصرف الرافدين" />
+    <input type="text" id="withdrawal-bank" placeholder="صلاً: مصرف الرافدين" />
 
     <label>المبلغ المسحوب</label>
     <input type="text" id="withdrawal-amount" placeholder="1,000,000" inputmode="numeric" />
@@ -285,7 +314,7 @@
   </div>
 </section>
 
-<div class="center-note">منافذ الرواتب — نسخة تجريبية أولى</div>
+<div class="center-note">منافذ الرواتب - نسخة تجريبية أولى</div>
 
 <script type="module" src="js/auth.js?v=3"></script>
 <script>
