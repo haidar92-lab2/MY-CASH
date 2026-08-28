@@ -4,7 +4,7 @@ import {
   hashPin, updateAgentPin, saveOtp, verifyOtp,
   getBranchConfig, saveBranchConfig,
   createSettlement, getDailyStats,
-  getDeviceBalances, createWithdrawal
+  getDeviceBalances, createWithdrawal, createCharge, getWithdrawnTotals
 } from './db.js';
 
 const COMMISSION_RATE = 0.003; // 3 بالألف عمولة الوكيل
@@ -62,6 +62,9 @@ async function loadDashboard(phone) {
     document.getElementById('dash-profit-today').textContent = fmtNum(totalProfit) + ' د.ع';
     document.getElementById('dash-count-today').textContent = count + ' تسوية اليوم';
 
+    const totalCharge = (stats && stats.totalChargeAmount) || 0;
+    document.getElementById('dash-charge-today').textContent = fmtNum(totalCharge) + ' د.ع';
+
     const recentList = document.getElementById('dash-recent-list');
     if (stats && stats.lastDevice) {
       recentList.innerHTML = `
@@ -84,6 +87,21 @@ async function loadDashboard(phone) {
       balancesList.innerHTML = '<div class="subtitle">لا يوجد رصيد معلق</div>';
     } else {
       balancesList.innerHTML = activeBalances.map(([key, val]) => `
+        <div class="recent-item">
+          <span class="r-device">${DEVICE_LABELS[key] || key}</span>
+          <span>${fmtNum(val)} د.ع</span>
+        </div>
+      `).join('');
+    }
+
+    // مجموع المسحوب من المصرف (سحب بنكي حقيقي + شحن وتحويل)
+    const withdrawn = await getWithdrawnTotals(phone);
+    const withdrawnList = document.getElementById('dash-withdrawn-list');
+    const activeWithdrawn = Object.entries(withdrawn).filter(([, v]) => v && v > 0);
+    if (activeWithdrawn.length === 0) {
+      withdrawnList.innerHTML = '<div class="subtitle">لا يوجد مسحوبات لهسه</div>';
+    } else {
+      withdrawnList.innerHTML = activeWithdrawn.map(([key, val]) => `
         <div class="recent-item">
           <span class="r-device">${DEVICE_LABELS[key] || key}</span>
           <span>${fmtNum(val)} د.ع</span>
@@ -321,7 +339,7 @@ document.getElementById('btn-open-add-settlement').addEventListener('click', () 
       chip.className = 'device-chip' + (i === 0 ? ' selected' : '');
       chip.textContent = DEVICE_LABELS[key] || key;
       chip.dataset.key = key;
-      chip.addEventListener('click', () => { 
+      chip.addEventListener('click', () => {
         chipsWrap.querySelectorAll('.device-chip').forEach((c) => c.classList.remove('selected'));
         chip.classList.add('selected');
         selectedDevice = key;
@@ -444,88 +462,115 @@ document.getElementById('btn-save-withdrawal').addEventListener('click', async (
   }
 });
 
-// ---------------- تسجيل الخروج ----------------
-document.getElementById('btn-logout').addEventListener('click', () => {
-  localStorage.removeItem('agentPhone');
-  show('screen-login');
-});
-
 // ---------------- الكشف اليومي المفصّل ----------------
 let reportDate = new Date();
 
 async function loadDailyReport() {
-    const phone = localStorage.getItem('agentPhone');
-    const dateKey = reportDate.toISOString().slice(0, 10);
-    document.getElementById('daily-report-date').textContent =
-          reportDate.toLocaleDateString('ar-EG-u-nu-latn', { weekday: 'long', day: 'numeric', month: 'long' });
+  const phone = localStorage.getItem('agentPhone');
+  const dateKey = reportDate.toISOString().slice(0, 10);
+  document.getElementById('daily-report-date').textContent =
+    reportDate.toLocaleDateString('ar-EG-u-nu-latn', { weekday: 'long', day: 'numeric', month: 'long' });
 
   const tableEl = document.getElementById('daily-report-table');
-    tableEl.innerHTML = '<div class="subtitle">جاري التحميل...</div>';
+  const txEl = document.getElementById('daily-report-transactions');
+  tableEl.innerHTML = '<div class="subtitle">جاري التحميل...</div>';
+  txEl.innerHTML = '';
 
   try {
-        const stats = await getDailyStats(phone, dateKey);
-        const total = (stats && stats.totalCommission) || 0;
-        document.getElementById('daily-report-total').textContent = fmtNum(total) + ' د.ع';
+    const stats = await getDailyStats(phone, dateKey);
+    const total = (stats && stats.totalCommission) || 0;
+    document.getElementById('daily-report-total').textContent = fmtNum(total) + ' د.ع';
 
-      if (!stats) {
-              tableEl.innerHTML = '<div class="subtitle">ماكو تسويات بهذا اليوم</div>';
-              return;
-      }
+    if (!stats) {
+      tableEl.innerHTML = '<div class="subtitle">ماكو حركات بهذا اليوم</div>';
+      return;
+    }
 
-      const deviceKeys = Object.keys(DEVICE_LABELS);
-        const rows = deviceKeys
-          .map((key) => ({
-                    key,
-                    amount: stats[`${key}_amount`] || 0,
-                    commission: stats[`${key}_commission`] || 0,
-                    count: stats[`${key}_count`] || 0
-          }))
-          .filter((r) => r.count > 0);
+    const deviceKeys = Object.keys(DEVICE_LABELS);
+    const rows = deviceKeys
+      .map((key) => ({
+        key,
+        amount: stats[`${key}_amount`] || 0,
+        commission: stats[`${key}_commission`] || 0,
+        count: stats[`${key}_count`] || 0
+      }))
+      .filter((r) => r.count > 0);
 
-      if (rows.length === 0) {
-              tableEl.innerHTML = '<div class="subtitle">ماكو تسويات بهذا اليوم</div>';
-              return;
-      }
-
+    if (rows.length === 0) {
+      tableEl.innerHTML = '<div class="subtitle">ماكو تسويات بهذا اليوم</div>';
+    } else {
       let html = `
-            <div class="report-row header">
-                    <span>الجهاز</span>
-                            <span class="r-num">عدد</span>
-                                    <span class="r-num">العمولة</span>
-                                          </div>
-                                              `;
-        html += rows.map((r) => `
-              <div class="report-row">
-                      <span class="r-name">${DEVICE_LABELS[r.key] || r.key}</span>
-                              <span class="r-num">${r.count}</span>
-                                      <span class="r-num r-commission">${fmtNum(r.commission)}</span>
-                                            </div>
-                                                `).join('');
-        tableEl.innerHTML = html;
+        <div class="report-row header">
+          <span>الجهاز</span>
+          <span class="r-num">عدد</span>
+          <span class="r-num">العمولة</span>
+        </div>
+      `;
+      html += rows.map((r) => `
+        <div class="report-row">
+          <span class="r-name">${DEVICE_LABELS[r.key] || r.key}</span>
+          <span class="r-num">${r.count}</span>
+          <span class="r-num r-commission">${fmtNum(r.commission)}</span>
+        </div>
+      `).join('');
+      tableEl.innerHTML = html;
+    }
+
+    // قائمة كل الحركات بالتفصيل (تسويات + شحن وتحويل) مرتبة من الأحدث
+    let txList = [];
+    if (stats.transactionsJson) {
+      try { txList = JSON.parse(stats.transactionsJson); } catch (e) { txList = []; }
+    }
+    if (txList.length === 0) {
+      txEl.innerHTML = '<div class="subtitle">ماكو حركات مسجلة بهذا اليوم</div>';
+    } else {
+      txList = txList.slice().reverse();
+      let txHtml = `
+        <div class="report-row header">
+          <span>الوقت</span>
+          <span class="r-num">الجهاز</span>
+          <span class="r-num">المبلغ</span>
+        </div>
+      `;
+      txHtml += txList.map((t) => `
+        <div class="report-row">
+          <span class="r-name">${t.time || ''} ${t.type === 'charge' ? '(شحن)' : ''}</span>
+          <span class="r-num">${DEVICE_LABELS[t.device] || t.device}</span>
+          <span class="r-num r-commission">${fmtNum(t.amount)}${t.commission ? ' +' + fmtNum(t.commission) : ''}</span>
+        </div>
+      `).join('');
+      txEl.innerHTML = txHtml;
+    }
   } catch (e) {
-        tableEl.innerHTML = '<div class="subtitle">تعذر تحميل الكشف، حدث الصفحة</div>';
+    tableEl.innerHTML = '<div class="subtitle">تعذر تحميل الكشف، حدث الصفحة</div>';
   }
 }
 
 document.getElementById('btn-open-daily-report').addEventListener('click', () => {
-    reportDate = new Date();
-    show('screen-daily-report');
-    loadDailyReport();
+  reportDate = new Date();
+  show('screen-daily-report');
+  loadDailyReport();
 });
 
 document.getElementById('link-back-dashboard-3').addEventListener('click', () => show('screen-dashboard'));
 
 document.getElementById('btn-prev-day').addEventListener('click', () => {
-    reportDate.setDate(reportDate.getDate() - 1);
-    loadDailyReport();
+  reportDate.setDate(reportDate.getDate() - 1);
+  loadDailyReport();
 });
 
 document.getElementById('btn-next-day').addEventListener('click', () => {
-    const tomorrow = new Date(reportDate);
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    if (tomorrow > new Date()) return;
-    reportDate = tomorrow;
-    loadDailyReport();
+  const tomorrow = new Date(reportDate);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  if (tomorrow > new Date()) return; // ما نسمح نطلع لأيام المستقبل
+  reportDate = tomorrow;
+  loadDailyReport();
+});
+
+// ---------------- تسجيل الخروج ----------------
+document.getElementById('btn-logout').addEventListener('click', () => {
+  localStorage.removeItem('agentPhone');
+  show('screen-login');
 });
 
 // ---------------- الكشف الدوري (أسبوعي / شهري) ----------------
@@ -607,4 +652,68 @@ document.getElementById('btn-period-month').addEventListener('click', () => {
   document.querySelectorAll('#screen-periodic-report .device-chip').forEach((c) => c.classList.remove('selected'));
   document.getElementById('btn-period-month').classList.add('selected');
   loadPeriodicReport(30);
+});
+
+// ---------------- شاشة الشحن والتحويل ----------------
+let chargeDevice = null;
+
+document.getElementById('btn-open-add-charge').addEventListener('click', () => {
+  const devices = window.__myDevices || {};
+  const enabledKeys = Object.keys(devices).filter((k) => devices[k]);
+  const chipsWrap = document.getElementById('charge-device-chips');
+  chipsWrap.innerHTML = '';
+  chargeDevice = null;
+
+  if (enabledKeys.length === 0) {
+    chipsWrap.innerHTML = '<div class="subtitle">ماكو أجهزة مفعّلة، راجع إعدادات المنفذ</div>';
+  } else {
+    enabledKeys.forEach((key, i) => {
+      const chip = document.createElement('div');
+      chip.className = 'device-chip' + (i === 0 ? ' selected' : '');
+      chip.textContent = DEVICE_LABELS[key] || key;
+      chip.dataset.key = key;
+      chip.addEventListener('click', () => {
+        chipsWrap.querySelectorAll('.device-chip').forEach((c) => c.classList.remove('selected'));
+        chip.classList.add('selected');
+        chargeDevice = key;
+      });
+      chipsWrap.appendChild(chip);
+    });
+    chargeDevice = enabledKeys[0];
+  }
+
+  document.getElementById('charge-amount').value = '';
+  setError('charge-error', '');
+  show('screen-add-charge');
+});
+
+document.getElementById('link-back-dashboard-5').addEventListener('click', () => show('screen-dashboard'));
+
+document.getElementById('charge-amount').addEventListener('input', (e) => {
+  const raw = e.target.value.replace(/[^0-9]/g, '');
+  const val = raw ? parseInt(raw, 10) : 0;
+  e.target.value = raw ? fmtNum(val) : '';
+});
+
+document.getElementById('btn-save-charge').addEventListener('click', async () => {
+  const phone = localStorage.getItem('agentPhone');
+  const raw = document.getElementById('charge-amount').value.replace(/[^0-9]/g, '');
+  const amount = raw ? parseInt(raw, 10) : 0;
+  setError('charge-error', '');
+
+  if (!chargeDevice) { setError('charge-error', 'اختر جهاز أول'); return; }
+  if (amount <= 0) { setError('charge-error', 'أدخل المبلغ'); return; }
+
+  const btn = document.getElementById('btn-save-charge');
+  btn.disabled = true; btn.textContent = 'جاري الحفظ...';
+
+  try {
+    await createCharge(phone, chargeDevice, amount);
+    show('screen-dashboard');
+    await loadDashboard(phone);
+  } catch (e) {
+    setError('charge-error', e && e.message ? e.message : 'صار خطأ، حاول مرة ثانية');
+  } finally {
+    btn.disabled = false; btn.textContent = 'حفظ العملية';
+  }
 });
