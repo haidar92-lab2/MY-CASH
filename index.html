@@ -240,9 +240,8 @@
 
 <div class="center-note">منافذ الرواتب — نسخة تجريبية أولى</div>
 
-<script type="module" src="js/auth.js"></script>
-<script>
-  if ('serviceWorker' in navigator) {
+<script type="module" src="js/auth.js?v=3"></script>
+<script>  if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
       navigator.serviceWorker.register('service-worker.js').catch(() => {});
     });
