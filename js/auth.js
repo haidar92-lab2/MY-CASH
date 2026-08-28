@@ -346,7 +346,7 @@ document.getElementById('settlement-amount').addEventListener('input', (e) => {
   document.getElementById('settlement-commission').textContent = fmtNum(val * COMMISSION_RATE) + ' د.ع';
 });
 
-document.getElementById('btn-save-settlement').addEvntListener('click', async () => {
+document.getElementById('btn-save-settlement').addEventListener('click', async () => {
   const phone = localStorage.getItem('agentPhone');
   const raw = document.getElementById('settlement-amount').value.replace(/[^0-9]/g, '');
   const amount = raw ? parseInt(raw, 10) : 0;
