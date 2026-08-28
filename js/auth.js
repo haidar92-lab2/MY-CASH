@@ -527,3 +527,84 @@ document.getElementById('btn-next-day').addEventListener('click', () => {
     reportDate = tomorrow;
     loadDailyReport();
 });
+
+// ---------------- الكشف الدوري (أسبوعي / شهري) ----------------
+async function loadPeriodicReport(days) {
+  const phone = localStorage.getItem('agentPhone');
+  const tableEl = document.getElementById('periodic-report-table');
+  tableEl.innerHTML = '<div class="subtitle">جاري التحميل...</div>';
+
+  try {
+    const dateKeys = [];
+    for (let i = 0; i < days; i++) {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      dateKeys.push(d.toISOString().slice(0, 10));
+    }
+
+    const allStats = await Promise.all(dateKeys.map((dk) => getDailyStats(phone, dk)));
+
+    const totals = {};
+    let grandTotal = 0;
+    allStats.forEach((stats) => {
+      if (!stats) return;
+      grandTotal += stats.totalCommission || 0;
+      Object.keys(DEVICE_LABELS).forEach((key) => {
+        const commission = stats[`${key}_commission`] || 0;
+        const count = stats[`${key}_count`] || 0;
+        if (count > 0) {
+          if (!totals[key]) totals[key] = { commission: 0, count: 0 };
+          totals[key].commission += commission;
+          totals[key].count += count;
+        }
+      });
+    });
+
+    document.getElementById('periodic-report-total').textContent = fmtNum(grandTotal) + ' د.ع';
+
+    const rows = Object.entries(totals);
+    if (rows.length === 0) {
+      tableEl.innerHTML = '<div class="subtitle">ماكو تسويات بهذي الفترة</div>';
+      return;
+    }
+
+    let html = `
+      <div class="report-row header">
+        <span>الجهاز</span>
+        <span class="r-num">عدد</span>
+        <span class="r-num">العمولة</span>
+      </div>
+    `;
+    html += rows.map(([key, v]) => `
+      <div class="report-row">
+        <span class="r-name">${DEVICE_LABELS[key] || key}</span>
+        <span class="r-num">${v.count}</span>
+        <span class="r-num r-commission">${fmtNum(v.commission)}</span>
+      </div>
+    `).join('');
+    tableEl.innerHTML = html;
+  } catch (e) {
+    tableEl.innerHTML = '<div class="subtitle">تعذر تحميل الكشف، حدث الصفحة</div>';
+  }
+}
+
+document.getElementById('btn-open-periodic-report').addEventListener('click', () => {
+  show('screen-periodic-report');
+  document.querySelectorAll('#screen-periodic-report .device-chip').forEach((c) => c.classList.remove('selected'));
+  document.getElementById('btn-period-week').classList.add('selected');
+  loadPeriodicReport(7);
+});
+
+document.getElementById('link-back-dashboard-4').addEventListener('click', () => show('screen-dashboard'));
+
+document.getElementById('btn-period-week').addEventListener('click', () => {
+  document.querySelectorAll('#screen-periodic-report .device-chip').forEach((c) => c.classList.remove('selected'));
+  document.getElementById('btn-period-week').classList.add('selected');
+  loadPeriodicReport(7);
+});
+
+document.getElementById('btn-period-month').addEventListener('click', () => {
+  document.querySelectorAll('#screen-periodic-report .device-chip').forEach((c) => c.classList.remove('selected'));
+  document.getElementById('btn-period-month').classList.add('selected');
+  loadPeriodicReport(30);
+});
