@@ -3,7 +3,8 @@ import {
   getActivationCode, bindActivationCode, getAgent, createAgent,
   hashPin, updateAgentPin, saveOtp, verifyOtp,
   getBranchConfig, saveBranchConfig,
-  createSettlement, getDailyStats
+  createSettlement, getDailyStats,
+  getDeviceBalances, createWithdrawal
 } from './db.js';
 
 const COMMISSION_RATE = 0.003; // 3 بالألف عمولة الوكيل
@@ -72,6 +73,22 @@ async function loadDashboard(phone) {
       `;
     } else {
       recentList.innerHTML = '<div class="subtitle">ماكو تسويات لهسه</div>';
+    }
+
+    // الأرصدة المعلقة
+    const balances = await getDeviceBalances(phone);
+    window.__myBalances = balances;
+    const balancesList = document.getElementById('dash-balances-list');
+    const activeBalances = Object.entries(balances).filter(([, v]) => v && v > 0);
+    if (activeBalances.length === 0) {
+      balancesList.innerHTML = '<div class="subtitle">لا يوجد رصيد معلق</div>';
+    } else {
+      balancesList.innerHTML = activeBalances.map(([key, val]) => `
+        <div class="recent-item">
+          <span class="r-device">${DEVICE_LABELS[key] || key}</span>
+          <span>${fmtNum(val)} د.ع</span>
+        </div>
+      `).join('');
     }
   } catch (e) {
     document.getElementById('dash-count-today').textContent = 'تعذر تحميل البيانات، حدث الصفحة';
@@ -173,7 +190,7 @@ document.getElementById('btn-login').addEventListener('click', async () => {
     if (pinHash !== agent.pinHash) { setError('login-error', 'الرمز السري غير صحيح'); return; }
 
     if (agent.subscriptionEnd && Date.now() > agent.subscriptionEnd) {
-      setError('login-error', 'انتهى اشتراكك, تواصل لتجديد الاشتراك');
+      setError('login-error', 'انتهى اشتراكك، تواصل لتجديد الاشتراك');
       return;
     }
 
@@ -304,7 +321,7 @@ document.getElementById('btn-open-add-settlement').addEventListener('click', () 
       chip.className = 'device-chip' + (i === 0 ? ' selected' : '');
       chip.textContent = DEVICE_LABELS[key] || key;
       chip.dataset.key = key;
-      chip.addEventListener('click', () => {
+      chip.addEventListener('click', () => { 
         chipsWrap.querySelectorAll('.device-chip').forEach((c) => c.classList.remove('selected'));
         chip.classList.add('selected');
         selectedDevice = key;
@@ -329,7 +346,7 @@ document.getElementById('settlement-amount').addEventListener('input', (e) => {
   document.getElementById('settlement-commission').textContent = fmtNum(val * COMMISSION_RATE) + ' د.ع';
 });
 
-document.getElementById('btn-save-settlement').addEventListener('click', async () => {
+document.getElementById('btn-save-settlement').addEvntListener('click', async () => {
   const phone = localStorage.getItem('agentPhone');
   const raw = document.getElementById('settlement-amount').value.replace(/[^0-9]/g, '');
   const amount = raw ? parseInt(raw, 10) : 0;
@@ -350,6 +367,80 @@ document.getElementById('btn-save-settlement').addEventListener('click', async (
     setError('settlement-error', e && e.message ? e.message : 'صار خطأ، حاول مرة ثانية');
   } finally {
     btn.disabled = false; btn.textContent = 'حفظ التسوية';
+  }
+});
+
+// ---------------- شاشة سحب بنكي ----------------
+let withdrawalDevice = null;
+
+document.getElementById('btn-open-withdrawal').addEventListener('click', () => {
+  const devices = window.__myDevices || {};
+  const balances = window.__myBalances || {};
+  const enabledKeys = Object.keys(devices).filter((k) => devices[k]);
+  const chipsWrap = document.getElementById('withdrawal-device-chips');
+  chipsWrap.innerHTML = '';
+  withdrawalDevice = null;
+
+  const updateBalanceDisplay = (key) => {
+    document.getElementById('withdrawal-current-balance').textContent = fmtNum(balances[key] || 0) + ' د.ع';
+  };
+
+  if (enabledKeys.length === 0) {
+    chipsWrap.innerHTML = '<div class="subtitle">ماكو أجهزة مفعّلة، راجع إعدادات المنفذ</div>';
+  } else {
+    enabledKeys.forEach((key, i) => {
+      const chip = document.createElement('div');
+      chip.className = 'device-chip' + (i === 0 ? ' selected' : '');
+      chip.textContent = DEVICE_LABELS[key] || key;
+      chip.dataset.key = key;
+      chip.addEventListener('click', () => {
+        chipsWrap.querySelectorAll('.device-chip').forEach((c) => c.classList.remove('selected'));
+        chip.classList.add('selected');
+        withdrawalDevice = key;
+        updateBalanceDisplay(key);
+      });
+      chipsWrap.appendChild(chip);
+    });
+    withdrawalDevice = enabledKeys[0];
+    updateBalanceDisplay(withdrawalDevice);
+  }
+
+  document.getElementById('withdrawal-bank').value = '';
+  document.getElementById('withdrawal-amount').value = '';
+  setError('withdrawal-error', '');
+  show('screen-add-withdrawal');
+});
+
+document.getElementById('link-back-dashboard-2').addEventListener('click', () => show('screen-dashboard'));
+
+document.getElementById('withdrawal-amount').addEventListener('input', (e) => {
+  const raw = e.target.value.replace(/[^0-9]/g, '');
+  const val = raw ? parseInt(raw, 10) : 0;
+  e.target.value = raw ? fmtNum(val) : '';
+});
+
+document.getElementById('btn-save-withdrawal').addEventListener('click', async () => {
+  const phone = localStorage.getItem('agentPhone');
+  const bankName = document.getElementById('withdrawal-bank').value.trim();
+  const raw = document.getElementById('withdrawal-amount').value.replace(/[^0-9]/g, '');
+  const amount = raw ? parseInt(raw, 10) : 0;
+  setError('withdrawal-error', '');
+
+  if (!withdrawalDevice) { setError('withdrawal-error', 'اختر جهاز أول'); return; }
+  if (!bankName) { setError('withdrawal-error', 'أدخل اسم المصرف'); return; }
+  if (amount <= 0) { setError('withdrawal-error', 'أدخل مبلغ السحب'); return; }
+
+  const btn = document.getElementById('btn-save-withdrawal');
+  btn.disabled = true; btn.textContent = 'جاري الحفظ...';
+
+  try {
+    await createWithdrawal(phone, withdrawalDevice, bankName, amount);
+    show('screen-dashboard');
+    await loadDashboard(phone);
+  } catch (e) {
+    setError('withdrawal-error', e && e.message ? e.message : 'صار خطأ، حاول مرة ثانية');
+  } finally {
+    btn.disabled = false; btn.textContent = 'حفظ السحب';
   }
 });
 
