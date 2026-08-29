@@ -191,6 +191,13 @@
   </div>
 
   <div class="card" style="margin-top:14px">
+    <div class="subtitle" style="margin-bottom:10px">مجموع المسحوب من المصرف</div>
+    <div id="dash-withdrawn-list" class="recent-list">
+      <div class="subtitle">لا يوجد مسحوبات لهسه</div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:14px">
     <div class="subtitle" style="margin-bottom:10px">آخر التسويات</div>
     <div id="dash-recent-list" class="recent-list">
       <div class="subtitle">ماكو تسويات لهسه</div>
@@ -233,12 +240,12 @@
     <label>اختر الجهاز</label>
     <div class="device-chips" id="charge-device-chips"></div>
 
-    <label>المبلغ المستلم كاش (نفس مبلغ الشحن)/label>
+    <label>المبلغ المستلم كاش (نفس مبلغ الشحن)</label>
     <input type="text" id="charge-amount" placeholder="1,000,000" inputmode="numeric" />
 
     <div class="error-text" id="charge-error"></div>
     <div style="height:6px"></div>
-    <button class="btn btn-primary" id="btn-save-charge">ح٠ظ العملية</button>
+    <button class="btn btn-primary" id="btn-save-charge">حفظ العملية</button>
   </div>
 </section>
 
@@ -303,7 +310,7 @@
     </div>
 
     <label>اسم المصرف</label>
-    <input type="text" id="withdrawal-bank" placeholder="صلاً: مصرف الرافدين" />
+    <input type="text" id="withdrawal-bank" placeholder="مثلاً: مصرف الرافدين" />
 
     <label>المبلغ المسحوب</label>
     <input type="text" id="withdrawal-amount" placeholder="1,000,000" inputmode="numeric" />
@@ -314,7 +321,7 @@
   </div>
 </section>
 
-<div class="center-note">منافذ الرواتب - نسخة تجريبية أولى</div>
+<div class="center-note">منافذ الرواتب — نسخة تجريبية أولى</div>
 
 <script type="module" src="js/auth.js?v=3"></script>
 <script>
