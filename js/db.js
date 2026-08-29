@@ -283,6 +283,8 @@ export async function createCharge(phone, device, amount) {
 
   // الرصيد ينقص بمبلغ الشحن (نفس مبدأ السحب البنكي — هذا الكاش يغني عن سحب مصرفي حقيقي)
   await adjustDeviceBalance(phone, device, -amount);
+  // ويزيد مجموع "المسحوب من المصرف" لنفس الجهاز
+  await adjustWithdrawnTotal(phone, device, amount);
 }
 
 export async function getDailyStats(phone, dateKey) {
@@ -318,4 +320,18 @@ export async function createWithdrawal(phone, device, bankName, amount) {
 
   // الرصيد ينقص بمقدار المبلغ المسحوب (كامل أو جزئي)
   await adjustDeviceBalance(phone, device, -amount);
+  // ويزيد مجموع "المسحوب من المصرف" لنفس الجهاز
+  await adjustWithdrawnTotal(phone, device, amount);
+}
+
+// ---------- مجموع المسحوب من المصرف لكل جهاز (سحب بنكي حقيقي + شحن وتحويل) ----------
+export async function getWithdrawnTotals(phone) {
+  const data = await restGet(`branches/${phone}/meta/withdrawn`, 'جلب مجموع المسحوب');
+  return data || {};
+}
+
+async function adjustWithdrawnTotal(phone, device, delta) {
+  const current = await getWithdrawnTotals(phone);
+  const updated = { ...current, [device]: (current[device] || 0) + delta };
+  await restWrite(`branches/${phone}/meta/withdrawn`, updated, 'تحديث مجموع المسحوب');
 }
