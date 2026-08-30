@@ -72,20 +72,46 @@
 
 <!-- شاشة تسجيل الدخول -->
 <section id="screen-login" class="screen">
-  <div class="card">
-    <div class="title">تسجيل الدخول</div>
-    <div class="subtitle">حط رقم هاتفك ورمزك السري.</div>
+  <div class="login-screen">
+    <div class="login-hero">
+      <img class="login-logo-icon" src="icons/icon-192.png" alt="MMC" />
+      <div class="login-wordmark-text">Manage <span class="accent">my</span> cash</div>
+      <div class="login-mini-brand"><span></span>MMC<span></span></div>
+    </div>
 
-    <label>رقم الهاتف</label>
-    <input type="tel" id="login-phone" placeholder="07xxxxxxxxx" inputmode="numeric" />
+    <div class="login-welcome">
+      <div class="login-welcome-title">مرحباً بك!</div>
+      <div class="login-welcome-sub">سجّل الدخول لإدارة أموالك بسهولة</div>
+    </div>
 
-    <label>الرمز السري</label>
-    <input type="password" id="login-pin" placeholder="•••••" inputmode="numeric" maxlength="5" />
+    <div class="card login-card">
+      <label>رقم الهاتف</label>
+      <div class="phone-input-row">
+        <div class="country-chip">🇮🇶 964+</div>
+        <div class="input-icon-wrap">
+          <input type="tel" id="login-phone" placeholder="07xxxxxxxxx" inputmode="numeric" />
+          <span class="input-icon">📱</span>
+        </div>
+      </div>
 
-    <div class="error-text" id="login-error"></div>
-    <div style="height:6px"></div>
-    <button class="btn btn-primary" id="btn-login">دخول</button>
-    <button class="link-btn" id="link-forgot-pin">نسيت الرمز السري؟</button>
+      <label>الرمز السري</label>
+      <div class="input-icon-wrap">
+        <input type="password" id="login-pin" placeholder="أدخل الرمز السري" inputmode="numeric" maxlength="5" />
+        <span class="input-icon">🔒</span>
+        <button type="button" class="eye-toggle" id="btn-toggle-pin">👁</button>
+      </div>
+
+      <div class="error-text" id="login-error"></div>
+      <div style="height:6px"></div>
+      <button class="btn btn-primary btn-login-fancy" id="btn-login"><span>→</span> تسجيل الدخول</button>
+      <button class="link-btn" id="link-forgot-pin">نسيت الرمز السري؟</button>
+
+      <div class="login-divider"><span>أو</span></div>
+      <div class="login-signup-prompt">
+        ليس لديك اشتراك؟
+        <button class="link-btn inline" id="link-login-to-activation">طلب الإشتراك 📝</button>
+      </div>
+    </div>
   </div>
 </section>
 
