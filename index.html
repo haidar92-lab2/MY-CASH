@@ -180,40 +180,93 @@
 
 <!-- لوحة التحكم الرئيسية -->
 <section id="screen-dashboard" class="screen">
-  <div class="dash-header">
-    <div>
-      <div class="brand-name">أهلاً بيك</div>
-      <div class="brand-sub" id="dash-date"></div>
+  <div class="dash-header-new">
+    <div class="dash-header-brand">
+      <img class="dash-logo-icon" src="icons/icon-192.png" alt="MMC" />
+      <div>
+        <div class="dash-header-wordmark">Manage <span class="accent">my</span> cash</div>
+        <div class="dash-header-mini"><span></span>MMC<span></span></div>
+      </div>
     </div>
-    <button class="icon-btn" id="btn-logout" title="تسجيل خروج">⎋</button>
+    <button class="dash-bell-btn" id="btn-logout" title="تسجيل خروج">🔔</button>
   </div>
 
-  <div class="card profit-card">
-    <div class="subtitle">أرباحك اليوم</div>
-    <div class="profit-value" id="dash-profit-today">0 د.ع</div>
-    <div class="subtitle" id="dash-count-today">0 تسوية اليوم</div>
+  <div class="brand-sub" id="dash-date" style="text-align:center;margin-bottom:10px"></div>
+
+  <div class="profit-card-new">
+    <div class="profit-card-new-header">
+      <span>أرباحك اليوم</span>
+      <span class="profit-trend-icon">📈</span>
+    </div>
+    <div class="profit-card-new-box">
+      <div class="profit-value-new" id="dash-profit-today">0</div>
+      <div class="profit-currency">دينار عراقي</div>
+      <div class="subtitle" id="dash-count-today" style="margin-top:6px">0 تسوية اليوم</div>
+    </div>
   </div>
 
-  <div class="card" style="margin-top:10px">
-    <div class="subtitle">الشحن والتحويل</div>
+  <div class="dash-grid">
+    <button class="dash-tile" id="btn-open-safe">
+      <span class="dash-tile-icon">🗄️</span>
+      <span class="dash-tile-label">الصندوق</span>
+    </button>
+    <button class="dash-tile" id="btn-open-add-settlement">
+      <span class="dash-tile-icon">📝</span>
+      <span class="dash-tile-label">إدخال تسوية</span>
+    </button>
+    <button class="dash-tile" id="btn-open-add-charge">
+      <span class="dash-tile-icon">🔀</span>
+      <span class="dash-tile-label">الشحن والتحويل</span>
+    </button>
+    <button class="dash-tile" id="btn-open-daily-report">
+      <span class="dash-tile-icon">🕓</span>
+      <span class="dash-tile-label">أخر تسوية</span>
+    </button>
+  </div>
+
+  <button class="dash-wide-tile" id="btn-open-withdrawal">
+    <span class="dash-tile-icon">🏦</span>
+    <span class="dash-tile-label">السحب من المصرف</span>
+  </button>
+
+  <div style="height:80px"></div>
+
+  <nav class="bottom-nav">
+    <button class="nav-item" id="nav-account">
+      <span class="nav-icon">👤</span><span>الحساب</span>
+    </button>
+    <button class="nav-item" id="btn-open-periodic-report">
+      <span class="nav-icon">📊</span><span>التقارير</span>
+    </button>
+    <button class="nav-item nav-item-active" id="nav-home">
+      <span class="nav-icon">🏠</span><span>الرئيسية</span>
+    </button>
+    <button class="nav-item" id="nav-settings">
+      <span class="nav-icon">⚙️</span><span>الإعدادات</span>
+    </button>
+  </nav>
+</section>
+
+<!-- شاشة الصندوق (التفاصيل المالية) -->
+<section id="screen-safe" class="screen">
+  <div class="top-actions">
+    <button class="back-btn" id="link-back-dashboard-6">‹ رجوع</button>
+  </div>
+  <div class="card">
+    <div class="title">الصندوق</div>
+    <div class="subtitle">تفاصيل أرصدتك وحركاتك المالية</div>
+  </div>
+
+  <div class="card" style="margin-top:14px">
+    <div class="subtitle">الشحن والتحويل اليوم</div>
     <div class="profit-value" id="dash-charge-today" style="font-size:24px">0 د.ع</div>
   </div>
-
-  <button class="btn btn-primary" id="btn-open-add-settlement">+ إدخال تسوية جديدة</button>
-  <div style="height:10px"></div>
-  <button class="btn btn-primary" id="btn-open-add-charge">+ شحن وتحويل</button>
-  <div style="height:10px"></div>
-  <button class="btn btn-ghost" id="btn-open-daily-report">الكشف اليومي المفصّل</button>
-  <div style="height:10px"></div>
-  <button class="btn btn-ghost" id="btn-open-periodic-report">الكشف الدوري (أسبوعي / شهري)</button>
 
   <div class="card" style="margin-top:14px">
     <div class="subtitle" style="margin-bottom:10px">الرصيد المعلق بالأجهزة</div>
     <div id="dash-balances-list" class="recent-list">
       <div class="subtitle">لا يوجد رصيد معلق</div>
     </div>
-    <div style="height:10px"></div>
-    <button class="btn btn-ghost" id="btn-open-withdrawal">سحب بنكي</button>
   </div>
 
   <div class="card" style="margin-top:14px">
