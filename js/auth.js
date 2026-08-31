@@ -226,6 +226,18 @@ document.getElementById('link-forgot-pin').addEventListener('click', () => {
   show('screen-forgot-1');
 });
 
+document.getElementById('btn-toggle-pin').addEventListener('click', () => {
+  const pinInput = document.getElementById('login-pin');
+  const btn = document.getElementById('btn-toggle-pin');
+  const isHidden = pinInput.type === 'password';
+  pinInput.type = isHidden ? 'text' : 'password';
+  btn.textContent = isHidden ? '🙈' : '👁';
+});
+
+document.getElementById('link-login-to-activation').addEventListener('click', () => {
+  show('screen-activation');
+});
+
 document.getElementById('link-to-login').addEventListener('click', () => show('screen-login'));
 
 // ---------------- نسيت الرمز السري: خطوة 1 - إرسال OTP ----------------
