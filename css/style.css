@@ -656,3 +656,95 @@ input::placeholder { color: var(--text-faint); }
 
 /* إخفاء الشعار العام القديم بأعلى الصفحة (كل شاشة أساسية صار عندها هيدرها الخاص) */
 body > .brand { display: none; }
+
+
+/* ---------------- شاشة الإعدادات ---------------- */
+.settings-header {
+  position: relative;
+  text-align: center;
+  padding-top: 6px;
+  margin-bottom: 8px;
+}
+.settings-back-btn {
+  position: absolute;
+  top: 0; left: 0;
+  width: 42px; height: 42px;
+  border-radius: 12px;
+  background: var(--accent-dim);
+  color: var(--accent);
+  border: none;
+  font-size: 20px;
+  cursor: pointer;
+}
+.settings-gear-mini {
+  position: absolute;
+  top: 0; right: 0;
+  width: 42px; height: 42px;
+  border-radius: 12px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+}
+.settings-header .title { margin-top: 6px; }
+.settings-header .subtitle { margin-top: 4px; }
+
+.settings-hero {
+  display: flex;
+  justify-content: center;
+  margin: 22px 0;
+}
+.settings-hero-gear {
+  width: 110px; height: 110px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #6a3fd8, #2b1055 75%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 52px;
+  box-shadow: 0 0 40px rgba(106,63,216,0.5), 0 12px 24px rgba(0,0,0,0.4);
+}
+
+.settings-card {
+  width: 100%;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 18px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 14px;
+  cursor: pointer;
+}
+.settings-card-icon {
+  width: 56px; height: 56px;
+  border-radius: 14px;
+  background: var(--accent-dim);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 26px;
+  flex-shrink: 0;
+}
+.settings-card-text {
+  flex: 1;
+  text-align: right;
+}
+.settings-card-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 4px;
+}
+.settings-card-subtitle {
+  font-size: 12px;
+  color: var(--text-dim);
+}
+.settings-card-chevron {
+  color: var(--accent);
+  font-size: 20px;
+  flex-shrink: 0;
+}
