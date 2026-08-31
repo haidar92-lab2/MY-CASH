@@ -505,6 +505,7 @@ input::placeholder { color: var(--text-faint); }
   margin-bottom: 4px;
 }
 .dash-header-brand-centered {
+  width: 100%;
   display: flex;
   flex-direction: column;
   align-items: center;
