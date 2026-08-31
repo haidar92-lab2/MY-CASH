@@ -500,22 +500,23 @@ input::placeholder { color: var(--text-faint); }
 
 /* ---------------- اللوحة الرئيسية (التصميم الجديد) ---------------- */
 .dash-header-new {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+  position: relative;
+  padding-top: 6px;
   margin-bottom: 4px;
 }
-.dash-header-brand {
+.dash-header-brand-centered {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 10px;
+  text-align: center;
 }
-.dash-logo-icon {
-  width: 42px; height: 42px;
-  border-radius: 10px;
+.dash-logo-icon-lg {
+  width: 64px; height: 64px;
+  border-radius: 16px;
+  margin-bottom: 8px;
 }
 .dash-header-wordmark {
-  font-size: 15px;
+  font-size: 17px;
   font-weight: 900;
   color: var(--text);
 }
@@ -523,19 +524,22 @@ input::placeholder { color: var(--text-faint); }
 .dash-header-mini {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   color: var(--accent);
-  font-size: 9px;
+  font-size: 10px;
   letter-spacing: 2px;
-  margin-top: 2px;
+  margin-top: 4px;
 }
 .dash-header-mini span {
-  width: 14px; height: 1px;
+  width: 18px; height: 1px;
   background: var(--accent);
   display: inline-block;
   opacity: .6;
 }
 .dash-bell-btn {
+  position: absolute;
+  top: 6px;
+  right: 0;
   width: 42px; height: 42px;
   border-radius: 12px;
   background: var(--surface-2);
