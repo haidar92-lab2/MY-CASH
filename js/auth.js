@@ -116,14 +116,9 @@ async function loadDashboard(phone) {
 // ---------------- حالة البدء ----------------
 window.addEventListener('DOMContentLoaded', () => {
   const savedPhone = localStorage.getItem('agentPhone');
-  const isActivated = localStorage.getItem('deviceActivated') === 'true';
-  if (!isActivated) {
-    show('screen-activation');
-  } else if (savedPhone) {
-    show('screen-login');
+  show('screen-login');
+  if (savedPhone) {
     document.getElementById('login-phone').value = savedPhone;
-  } else {
-    show('screen-login');
   }
 });
 
