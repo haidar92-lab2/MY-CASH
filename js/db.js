@@ -335,3 +335,18 @@ async function adjustWithdrawnTotal(phone, device, delta) {
   const updated = { ...current, [device]: (current[device] || 0) + delta };
   await restWrite(`branches/${phone}/meta/withdrawn`, updated, 'تحديث مجموع المسحوب');
 }
+
+// ---------- إدارة الموظفين (مستند وحد يحتوي القائمة كـ JSON لتفادي مشكلة List) ----------
+export async function getStaffList(phone) {
+  const data = await restGet(`branches/${phone}/meta/staff`, 'جلب قائمة الموظفين');
+  if (!data || !data.list) return [];
+  try {
+    return JSON.parse(data.list);
+  } catch (e) {
+    return [];
+  }
+}
+
+export async function saveStaffList(phone, list) {
+  await restWrite(`branches/${phone}/meta/staff`, { list: JSON.stringify(list) }, 'حفظ قائمة الموظفين');
+}
