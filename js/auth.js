@@ -588,8 +588,34 @@ document.getElementById('nav-home').addEventListener('click', () => show('screen
 document.getElementById('nav-account').addEventListener('click', () => {
   alert('شاشة الحساب قيد التطوير، تكدر تراجع بيانات حسابك حالياً من داخل التطبيق.');
 });
-document.getElementById('nav-settings').addEventListener('click', () => {
-  alert('شاشة الإعدادات قيد التطوير حالياً.');
+document.getElementById('nav-settings').addEventListener('click', () => show('screen-settings'));
+
+// ---------------- شاشة الإعدادات ----------------
+document.getElementById('link-settings-back').addEventListener('click', () => show('screen-dashboard'));
+
+document.getElementById('settings-card-devices').addEventListener('click', () => {
+  const devices = window.__myDevices || {};
+  document.querySelectorAll('#screen-device-setup input[type="checkbox"]').forEach((cb) => {
+    cb.checked = !!devices[cb.value.replace(/\s/g, '_')];
+  });
+  show('screen-device-setup');
+});
+document.getElementById('settings-card-staff').addEventListener('click', () => {
+  alert('ميزة إضافة الموظفين قيد التطوير حالياً.');
+});
+document.getElementById('settings-card-bank').addEventListener('click', () => {
+  alert('ميزة إضافة المصارف قيد التطوير حالياً.');
+});
+
+document.getElementById('nav-home-2').addEventListener('click', () => show('screen-dashboard'));
+document.getElementById('nav-reports-2').addEventListener('click', () => {
+  show('screen-periodic-report');
+  document.querySelectorAll('#screen-periodic-report .device-chip').forEach((c) => c.classList.remove('selected'));
+  document.getElementById('btn-period-week').classList.add('selected');
+  loadPeriodicReport(7);
+});
+document.getElementById('nav-account-2').addEventListener('click', () => {
+  alert('شاشة الحساب قيد التطوير، تكدر تراجع بيانات حسابك حالياً من داخل التطبيق.');
 });
 
 // ---------------- الكشف الدوري (أسبوعي / شهري) ----------------
