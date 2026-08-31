@@ -585,6 +585,18 @@ document.getElementById('btn-logout').addEventListener('click', () => {
   show('screen-login');
 });
 
+// ---------------- شاشة الصندوق وشريط التنقل السفلي ----------------
+document.getElementById('btn-open-safe').addEventListener('click', () => show('screen-safe'));
+document.getElementById('link-back-dashboard-6').addEventListener('click', () => show('screen-dashboard'));
+
+document.getElementById('nav-home').addEventListener('click', () => show('screen-dashboard'));
+document.getElementById('nav-account').addEventListener('click', () => {
+  alert('شاشة الحساب قيد التطوير، تكدر تراجع بيانات حسابك حالياً من داخل التطبيق.');
+});
+document.getElementById('nav-settings').addEventListener('click', () => {
+  alert('شاشة الإعدادات قيد التطوير حالياً.');
+});
+
 // ---------------- الكشف الدوري (أسبوعي / شهري) ----------------
 async function loadPeriodicReport(days) {
   const phone = localStorage.getItem('agentPhone');
