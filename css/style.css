@@ -647,3 +647,7 @@ input::placeholder { color: var(--text-faint); }
 .nav-item-active {
   color: var(--accent);
 }
+
+
+/* إخفاء الشعار العام القديم بأعلى الصفحة (كل شاشة أساسية صار عندها هيدرها الخاص) */
+body > .brand { display: none; }
