@@ -181,14 +181,12 @@
 <!-- لوحة التحكم الرئيسية -->
 <section id="screen-dashboard" class="screen">
   <div class="dash-header-new">
-    <div class="dash-header-brand">
-      <img class="dash-logo-icon" src="icons/icon-192.png" alt="MMC" />
-      <div>
-        <div class="dash-header-wordmark">Manage <span class="accent">my</span> cash</div>
-        <div class="dash-header-mini"><span></span>MMC<span></span></div>
-      </div>
-    </div>
     <button class="dash-bell-btn" id="btn-logout" title="تسجيل خروج">🔔</button>
+    <div class="dash-header-brand-centered">
+      <img class="dash-logo-icon-lg" src="icons/icon-192.png" alt="MMC" />
+      <div class="dash-header-wordmark">Manage <span class="accent">my</span> cash</div>
+      <div class="dash-header-mini"><span></span>MMC<span></span></div>
+    </div>
   </div>
 
   <div class="brand-sub" id="dash-date" style="text-align:center;margin-bottom:10px"></div>
@@ -206,21 +204,21 @@
   </div>
 
   <div class="dash-grid">
-    <button class="dash-tile" id="btn-open-safe">
-      <span class="dash-tile-icon">🗄️</span>
-      <span class="dash-tile-label">الصندوق</span>
-    </button>
     <button class="dash-tile" id="btn-open-add-settlement">
       <span class="dash-tile-icon">📝</span>
       <span class="dash-tile-label">إدخال تسوية</span>
     </button>
-    <button class="dash-tile" id="btn-open-add-charge">
-      <span class="dash-tile-icon">🔀</span>
-      <span class="dash-tile-label">الشحن والتحويل</span>
+    <button class="dash-tile" id="btn-open-safe">
+      <span class="dash-tile-icon">🗄️</span>
+      <span class="dash-tile-label">الصندوق</span>
     </button>
     <button class="dash-tile" id="btn-open-daily-report">
       <span class="dash-tile-icon">🕓</span>
       <span class="dash-tile-label">أخر تسوية</span>
+    </button>
+    <button class="dash-tile" id="btn-open-add-charge">
+      <span class="dash-tile-icon">🔀</span>
+      <span class="dash-tile-label">الشحن والتحويل</span>
     </button>
   </div>
 
@@ -232,17 +230,17 @@
   <div style="height:80px"></div>
 
   <nav class="bottom-nav">
-    <button class="nav-item" id="nav-account">
-      <span class="nav-icon">👤</span><span>الحساب</span>
-    </button>
-    <button class="nav-item" id="btn-open-periodic-report">
-      <span class="nav-icon">📊</span><span>التقارير</span>
+    <button class="nav-item" id="nav-settings">
+      <span class="nav-icon">⚙️</span><span>الإعدادات</span>
     </button>
     <button class="nav-item nav-item-active" id="nav-home">
       <span class="nav-icon">🏠</span><span>الرئيسية</span>
     </button>
-    <button class="nav-item" id="nav-settings">
-      <span class="nav-icon">⚙️</span><span>الإعدادات</span>
+    <button class="nav-item" id="btn-open-periodic-report">
+      <span class="nav-icon">📊</span><span>التقارير</span>
+    </button>
+    <button class="nav-item" id="nav-account">
+      <span class="nav-icon">👤</span><span>الحساب</span>
     </button>
   </nav>
 </section>
