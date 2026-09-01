@@ -662,12 +662,12 @@ body > .brand { display: none; }
 .settings-header {
   position: relative;
   text-align: center;
-  padding-top: 6px;
+  padding-top: calc(env(safe-area-inset-top, 0px) + 22px);
   margin-bottom: 8px;
 }
 .settings-back-btn {
   position: absolute;
-  top: 0; left: 0;
+  top: calc(env(safe-area-inset-top, 0px) + 16px); left: 0;
   width: 42px; height: 42px;
   border-radius: 12px;
   background: var(--accent-dim);
@@ -678,7 +678,7 @@ body > .brand { display: none; }
 }
 .settings-gear-mini {
   position: absolute;
-  top: 0; right: 0;
+  top: calc(env(safe-area-inset-top, 0px) + 16px); right: 0;
   width: 42px; height: 42px;
   border-radius: 12px;
   background: var(--surface-2);
