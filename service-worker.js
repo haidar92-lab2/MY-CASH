@@ -1,4 +1,4 @@
-const CACHE_NAME = 'salary-agent-v1';
+const CACHE_NAME = 'salary-agent-v2';
 const ASSETS = [
   './',
   './index.html',
@@ -7,8 +7,7 @@ const ASSETS = [
   './js/firebase-config.js',
   './js/db.js',
   './js/auth.js',
-  './js/app.js',
-  './manifest.json'
+    './manifest.json'
 ];
 
 self.addEventListener('install', (event) => {
